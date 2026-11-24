@@ -218,8 +218,20 @@ function playBuddyGesture(kind) {
     anime({ targets: '#buddyArmR, #eppArmR', rotate: [0, -55, 15, -50, 0], duration: 950, easing: 'easeInOutSine' });
     anime({ targets: '#buddyStar, #eppStar', scale: [1, 1.35, 1], duration: 700, easing: 'easeOutElastic(1, .6)' });
   } else if (kind === 'speak') {
-    anime({ targets: '#buddyStar, #eppStar', scale: [1, 1.2, 1], duration: 480, easing: 'easeInOutQuad' });
+    anime({ targets: '#buddyStar, #eppStar', scale: [1, 1.22, 1], duration: 480, easing: 'easeInOutQuad' });
     anime({ targets: '#buddyArmL, #eppArmL', rotate: [0, 18, 0], duration: 520, easing: 'easeInOutSine' });
+  } else if (kind === 'point') {
+    anime({ targets: '#buddyArmR, #eppArmR', rotate: [0, -48, -32, 0], duration: 680, easing: 'easeOutBack' });
+    anime({ targets: '#buddyStar, #eppStar', rotate: [0, 15, 0], duration: 520, easing: 'easeOutSine' });
+  } else if (kind === 'nod') {
+    anime({ targets: '#buddySvg, #eppGemiSvg', translateY: [0, 4, 0, 3, 0], duration: 520, easing: 'easeInOutSine' });
+  } else if (kind === 'alertShake') {
+    anime({ targets: '#buddySvg, #eppGemiSvg', translateX: [0, -5, 5, -4, 4, 0], duration: 480, easing: 'easeInOutSine' });
+    anime({ targets: '#buddyStar, #eppStar', scale: [1, 1.4, 1], duration: 480, easing: 'easeOutBack' });
+  } else if (kind === 'cheer') {
+    anime({ targets: '#buddyArmL, #eppArmL', rotate: [0, 46, 20, 46, 0], duration: 850, easing: 'easeOutBack' });
+    anime({ targets: '#buddyArmR, #eppArmR', rotate: [0, -46, -20, -46, 0], duration: 850, easing: 'easeOutBack' });
+    anime({ targets: '#buddySvg, #eppGemiSvg', translateY: [0, -10, 0], duration: 600, easing: 'easeOutBounce' });
   } else if (kind === 'land') {
     anime({ targets: '#buddySvg', scaleX: [1.14, 1], scaleY: [0.86, 1], duration: 420, easing: 'easeOutElastic(1, .5)' });
   }
@@ -259,16 +271,180 @@ function visemeAtTime(timeline, ms) {
 
 let activeAudio = null;
 let lipRafId = null;
+let speakDelayTimer = null;
+let slideTourRunning = false;
+let slideTourGen = 0;
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Renderiza el texto de la burbuja por palabras (.kw) para seguimiento tipo karaoke en vivo
+function setBubbleContent(el, text) {
+  if (!el) return;
+  const raw = String(text || '');
+  el.dataset.rawText = raw;
+  const parts = raw.split(/(\s+)/);
+  let cursor = 0;
+  const ranges = [];
+  el.innerHTML = parts.map(part => {
+    const start = cursor;
+    cursor += part.length;
+    if (/^\s+$/.test(part) || !part) return part;
+    ranges.push([start, cursor]);
+    return `<span class="kw">${escapeHtml(part)}</span>`;
+  }).join('');
+  el._kwNodes = Array.from(el.querySelectorAll('.kw'));
+  el._kwRanges = ranges;
+}
+
+function highlightBubbleWord(wordIdx, progress = null) {
+  [document.getElementById('buddyBubble'), document.getElementById('eppSpeechBubble')].forEach(el => {
+    if (!el || !el._kwNodes || !el._kwNodes.length) return;
+    const targetIdx = progress !== null
+      ? Math.min(el._kwNodes.length - 1, Math.floor(Math.max(0, Math.min(0.999, progress)) * el._kwNodes.length))
+      : Math.min(el._kwNodes.length - 1, wordIdx);
+    el._kwNodes.forEach((node, i) => {
+      node.classList.toggle('spoken', i < targetIdx);
+      node.classList.toggle('reading', i === targetIdx);
+    });
+  });
+}
+
+function clearBubbleHighlight() {
+  [document.getElementById('buddyBubble'), document.getElementById('eppSpeechBubble')].forEach(el => {
+    if (!el || !el._kwNodes) return;
+    el._kwNodes.forEach(node => node.classList.remove('spoken', 'reading'));
+  });
+}
+
+function wordIndexFromChar(charIdx) {
+  const activeBubble = currentSlide === 6
+    ? document.getElementById('eppSpeechBubble')
+    : document.getElementById('buddyBubble');
+  if (!activeBubble || !activeBubble._kwRanges || !activeBubble._kwRanges.length) return -1;
+  const ranges = activeBubble._kwRanges;
+  for (let i = 0; i < ranges.length; i++) {
+    if (charIdx <= ranges[i][1]) return i;
+  }
+  return ranges.length - 1;
+}
+
+// Seguimiento ocular GSAP sobre lo que Gemi está leyendo o señalando (ya no sigue al cursor)
+let currentReadingEl = null;
+let gazeLastTick = 0;
+let gazeResetTimer = null;
+const gazeState = { ex: 0, ey: 0, px: 0, py: 0 };
+
+function applyGazeAttrs() {
+  const eyeT = `translate(${gazeState.ex.toFixed(3)}, ${gazeState.ey.toFixed(3)})`;
+  const pupT = `translate(${gazeState.px.toFixed(3)}, ${gazeState.py.toFixed(3)})`;
+  ['buddyEyes', 'eppEyes'].forEach(id => {
+    const g = document.getElementById(id);
+    if (g) g.setAttribute('transform', eyeT);
+  });
+  ['buddyPupils', 'eppPupils'].forEach(id => {
+    const p = document.getElementById(id);
+    if (p) p.setAttribute('transform', pupT);
+  });
+}
+
+function tweenGazeTo(ex, ey, px, py, dur = 0.14) {
+  if (typeof gsap !== 'undefined') {
+    gsap.to(gazeState, { ex, ey, px, py, duration: dur, ease: 'power2.out', overwrite: 'auto', onUpdate: applyGazeAttrs });
+  } else {
+    gazeState.ex = ex; gazeState.ey = ey; gazeState.px = px; gazeState.py = py;
+    applyGazeAttrs();
+  }
+}
+
+function lookBuddyAtElement(el, scanProgress = 0.5, forceTarget = null) {
+  if (buddySleeping) return;
+  const onEppStage = (currentSlide === 6);
+  const svg = document.getElementById(onEppStage ? 'eppGemiSvg' : 'buddySvg');
+  if (!svg || !svg.getScreenCTM) return;
+
+  let targetEl = forceTarget;
+  if (!targetEl) {
+    if (onEppStage) {
+      const eppBubble = document.getElementById('eppSpeechBubble');
+      const kwReading = eppBubble ? eppBubble.querySelector('.kw.reading') : null;
+      const eqActive = scanProgress < 0.16 ? document.querySelector('#eppEquippedBadges .eq-pill.equipped') : null;
+      targetEl = eqActive || kwReading || eppBubble || document.getElementById('eppStageTag');
+    } else {
+      targetEl = el || currentReadingEl;
+      if (!targetEl) {
+        const bBubble = document.getElementById('buddyBubble');
+        targetEl = (bBubble && bBubble.querySelector('.kw.reading')) || bBubble;
+      }
+    }
+  }
+  if (!targetEl) {
+    tweenGazeTo(0, 0, 0, 0, 0.25);
+    return;
+  }
+
+  const r = targetEl.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return;
+
+  const isSingleWord = targetEl.classList && targetEl.classList.contains('kw');
+  const clampedP = Math.max(0, Math.min(0.999, scanProgress));
+  const lines = isSingleWord ? 1 : (r.height >= 72 ? 2 : 1);
+  const rowFloat = clampedP * lines;
+  const rowIdx = Math.min(lines - 1, Math.floor(rowFloat));
+  const colT = lines === 1 ? clampedP : (rowFloat - rowIdx);
+
+  const tx = isSingleWord ? (r.left + r.width / 2) : (r.left + r.width * (0.12 + colT * 0.76));
+  const ty = isSingleWord ? (r.top + r.height / 2) : (r.top + r.height * (lines === 1 ? 0.48 : (0.28 + rowIdx * 0.44)));
+
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  const inv = ctm.inverse();
+  const pt = new DOMPoint(tx, ty).matrixTransform(inv);
+  const rawDx = pt.x - 8;
+  const rawDy = pt.y - 6;
+  const mag = Math.hypot(rawDx, rawDy) || 1;
+
+  let nx;
+  if (Math.abs(rawDx) < 22) {
+    nx = Math.max(-1, Math.min(1, rawDx / 14));
+  } else {
+    const signX = Math.sign(inv.a || 1);
+    nx = (rawDx / mag) * 0.65 + (colT - 0.5) * 0.55 * signX;
+    nx = Math.max(-1, Math.min(1, nx));
+  }
+  const ny = Math.max(-1, Math.min(1, (rawDy / mag) * 0.9));
+
+  tweenGazeTo(nx * 0.45, ny * 0.35, nx * 0.46, ny * 0.32, 0.13);
+}
+
+function faceBuddyToward(el) {
+  if (!buddyEl || !el || buddyParked || currentSlide === 6) return;
+  const r = el.getBoundingClientRect();
+  const elCx = r.left + r.width / 2;
+  const buddyCx = buddyX + (buddyEl.offsetWidth || 90) / 2;
+  if (Math.abs(elCx - buddyCx) > 26) {
+    buddyEl.classList.toggle('facing-left', elCx < buddyCx);
+  }
+}
 
 function stopActiveVoice() {
+  clearTimeout(speakDelayTimer);
+  clearTimeout(gazeResetTimer);
   if (activeAudio) {
     try { activeAudio.pause(); activeAudio.currentTime = 0; } catch (e) {}
     activeAudio.onended = null;
     activeAudio.onerror = null;
+    activeAudio.onplay = null;
   }
   cancelAnimationFrame(lipRafId);
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   stopLipSync();
+  clearBubbleHighlight();
 }
 
 // Habla usando MP3 neuronal de Jorge + línea exacta de visemas WordBoundary (0ms de desfase)
@@ -277,7 +453,8 @@ function speakOne(text) {
     let done = false;
     let lipTimer = null;
     let watchdog = null;
-    const words = text.split(/\s+/).length;
+    const wordsArr = text.trim().split(/\s+/).filter(Boolean);
+    const words = wordsArr.length || 1;
     const finish = () => {
       if (done) return;
       done = true;
@@ -285,7 +462,30 @@ function speakOne(text) {
       clearInterval(lipTimer);
       cancelAnimationFrame(lipRafId);
       stopLipSync();
+      clearBubbleHighlight();
+      gazeResetTimer = setTimeout(() => tweenGazeTo(0, 0, 0, 0, 0.35), 450);
       resolve();
+    };
+
+    clearTimeout(gazeResetTimer);
+    wakeBuddy();
+    lookBuddyAtElement(currentReadingEl, 0.05);
+
+    const startSilentSync = () => {
+      startLipSync();
+      const seq = [1, 3, 4, 0, 2, 1, 0];
+      let si = 0;
+      const estMs = Math.max(2200, words * 380);
+      const startedAt = Date.now();
+      clearInterval(lipTimer);
+      clearTimeout(watchdog);
+      lipTimer = setInterval(() => {
+        setMouthFrame(seq[si++ % seq.length]);
+        const progress = Math.min(0.999, (Date.now() - startedAt) / estMs);
+        highlightBubbleWord(-1, progress);
+        lookBuddyAtElement(currentReadingEl, progress);
+      }, 120);
+      watchdog = setTimeout(finish, estMs);
     };
 
     const mp3File = window.__audioMap && window.__audioMap[text];
@@ -298,15 +498,25 @@ function speakOne(text) {
         startLipSync();
         playBuddyGesture('speak');
 
-        if (timeline && timeline.length) {
-          const tickViseme = () => {
-            if (done || activeAudio.paused) return;
-            const ms = activeAudio.currentTime * 1000;
-            setMouthFrame(visemeAtTime(timeline, ms));
-            lipRafId = requestAnimationFrame(tickViseme);
-          };
-          activeAudio.onplay = () => { lipRafId = requestAnimationFrame(tickViseme); };
-        } else {
+        const tickViseme = () => {
+          if (done || activeAudio.paused) return;
+          const ms = activeAudio.currentTime * 1000;
+          if (timeline && timeline.length) setMouthFrame(visemeAtTime(timeline, ms));
+          const durMs = (activeAudio.duration && isFinite(activeAudio.duration))
+            ? activeAudio.duration * 1000
+            : Math.max(1800, words * 420);
+          const effectiveMs = Math.max(400, durMs - 140);
+          const progress = Math.min(0.999, Math.max(0, ms / effectiveMs));
+          highlightBubbleWord(-1, progress);
+          const now = performance.now();
+          if (now - gazeLastTick > 75) {
+            gazeLastTick = now;
+            lookBuddyAtElement(currentReadingEl, progress);
+          }
+          lipRafId = requestAnimationFrame(tickViseme);
+        };
+        activeAudio.onplay = () => { lipRafId = requestAnimationFrame(tickViseme); };
+        if (!timeline || !timeline.length) {
           const seq = [1, 3, 2, 0, 4, 2, 1, 0];
           let si = 0;
           lipTimer = setInterval(() => { setMouthFrame(seq[si++ % seq.length]); }, 110);
@@ -317,19 +527,15 @@ function speakOne(text) {
         watchdog = setTimeout(finish, Math.max(8000, words * 750 + 4000));
         const p = activeAudio.play();
         if (p && p.catch) p.catch(() => {
-          clearInterval(lipTimer);
           cancelAnimationFrame(lipRafId);
-          watchdog = setTimeout(finish, Math.max(2400, words * 380));
+          startSilentSync();
         });
         return;
       } catch (e) {}
     }
 
     if (!soundEnabled || !('speechSynthesis' in window)) {
-      startLipSync();
-      const seq = [1, 3, 4, 0, 2, 1, 0]; let si = 0;
-      lipTimer = setInterval(() => { setMouthFrame(seq[si++ % seq.length]); }, 120);
-      watchdog = setTimeout(finish, Math.max(2200, words * 400));
+      startSilentSync();
       return;
     }
 
@@ -341,7 +547,19 @@ function speakOne(text) {
     u.pitch = 1.02;
     let started = false, gotBoundary = false;
     u.onstart = () => { started = true; startLipSync(); playBuddyGesture('speak'); };
-    u.onboundary = (e) => { if (!e.name || e.name === 'word') { gotBoundary = true; pulseLipOnce(); } };
+    u.onboundary = (e) => {
+      if (!e.name || e.name === 'word') {
+        gotBoundary = true;
+        pulseLipOnce();
+        if (typeof e.charIndex === 'number') {
+          const wIdx = wordIndexFromChar(e.charIndex);
+          if (wIdx >= 0) {
+            highlightBubbleWord(wIdx);
+            lookBuddyAtElement(currentReadingEl, (wIdx + 0.5) / words);
+          }
+        }
+      }
+    };
     u.onend = finish;
     u.onerror = finish;
     lipTimer = setInterval(() => { if (started && !gotBoundary) pulseLipOnce(); }, 135);
@@ -366,7 +584,7 @@ async function speakChunk(text, alive = () => true) {
 function speakWithLipSync(text, onFinish) {
   if (!text) { if (onFinish) onFinish(); return false; }
   stopActiveVoice();
-  setTimeout(() => { speakChunk(text).then(() => { if (onFinish) onFinish(); }); }, 60);
+  speakDelayTimer = setTimeout(() => { speakChunk(text).then(() => { if (onFinish) onFinish(); }); }, 50);
   return true;
 }
 
@@ -407,20 +625,80 @@ function clearGemiFocus() {
   document.querySelectorAll('.slide.stage-dimming').forEach(s => s.classList.remove('stage-dimming'));
 }
 
-// Lleva a Gemi junto al elemento del que está hablando
+// Lleva a Gemi junto al elemento del que está hablando y apunta su mirada ahí
 async function focusBuddyOn(el, mode = 'glide', scaleMul = 1) {
   clearGemiFocus();
+  currentReadingEl = el || null;
   if (!el) return;
   const r0 = el.getBoundingClientRect();
   if (r0.top < 70 || r0.bottom > window.innerHeight - 70) {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    await waitMs(550);
+    await waitMs(480);
   }
   el.classList.add('gemi-focus');
   if (slides[currentSlide]) slides[currentSlide].classList.add('stage-dimming');
   moveBuddyToElement(el, mode, scaleMul);
-  await waitMs(mode === 'teleport' ? 450 : 350);
-  playBuddyGesture('land');
+  await waitMs(mode === 'teleport' ? 420 : 320);
+  faceBuddyToward(el);
+  lookBuddyAtElement(el, 0.08);
+  playBuddyGesture(scaleMul > 1.1 ? 'point' : 'land');
+}
+
+function gemiSpotlightReact(el, speechText, opts = {}) {
+  const { mood = 'normal', gesture = 'point', speak = false, scaleMul = 1.08 } = opts;
+  if (autoMode || slideTourRunning) return;
+  clearGemiFocus();
+  currentReadingEl = el || null;
+  if (el) {
+    el.classList.add('gemi-focus');
+    if (slides[currentSlide]) slides[currentSlide].classList.add('stage-dimming');
+    moveBuddyToElement(el, 'glide', scaleMul);
+    faceBuddyToward(el);
+  }
+  setBuddyMood(mood, speechText, speak);
+  lookBuddyAtElement(el, 0.1);
+  playBuddyGesture(gesture);
+}
+
+async function runSlideScript(idx, alive) {
+  const chunks = autoScripts[idx] || [{ t: 'h2', s: buddyLines[idx] }];
+  for (let c = 0; c < chunks.length; c++) {
+    if (!alive()) return;
+    const ch = chunks[c];
+    if (ch.quiz) { await runAutoQuiz(alive); continue; }
+
+    const el = ch.t ? slides[idx].querySelector(ch.t) : null;
+    const mode = c % 2 === 0 ? 'teleport' : 'glide';
+    const scaleMul = c % 3 === 0 ? 1.25 : 1;
+    setBuddyMood(ch.mood || 'normal', ch.s, false);
+    await focusBuddyOn(el, mode, scaleMul);
+    if (!alive()) return;
+    if (ch.a) { try { ch.a(); } catch (e) {} }
+    if (ch.mood === 'alert') playBuddyGesture('alertShake');
+    await speakChunk(ch.s, alive);
+    if (!alive()) return;
+    await sleepAuto(ch.pause || 400);
+  }
+  clearGemiFocus();
+}
+
+function stopSlideTour() {
+  slideTourRunning = false;
+  slideTourGen++;
+  clearTimeout(autoStepTimer);
+  clearGemiFocus();
+  stopActiveVoice();
+}
+
+async function startSlideTour(idx) {
+  stopAutoPresentation();
+  stopSlideTour();
+  slideTourRunning = true;
+  const myGen = ++slideTourGen;
+  const alive = () => slideTourRunning && myGen === slideTourGen && currentSlide === idx;
+  if (buddyEl) buddyEl.classList.toggle('hidden-for-stage', idx === 6);
+  await runSlideScript(idx, alive);
+  if (alive()) stopSlideTour();
 }
 
 async function runAutoQuiz(alive) {
@@ -453,6 +731,7 @@ async function runAutoQuiz(alive) {
 }
 
 async function runAutoFrom(startIdx) {
+  stopSlideTour();
   const gen = ++autoGen;
   const alive = () => autoMode && gen === autoGen;
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -463,28 +742,12 @@ async function runAutoFrom(startIdx) {
     if (currentSlide !== idx) openSlide(idx);
     else updateBuddyForSlide(idx);
     if (buddyEl) buddyEl.classList.toggle('hidden-for-stage', idx === 6);
-    await sleepAuto(850);
+    await sleepAuto(750);
     if (!alive()) return;
 
-    const chunks = autoScripts[idx] || [{ t: 'h2', s: buddyLines[idx] }];
-    for (let c = 0; c < chunks.length; c++) {
-      if (!alive()) return;
-      const ch = chunks[c];
-      if (ch.quiz) { await runAutoQuiz(alive); continue; }
-
-      const el = ch.t ? slides[idx].querySelector(ch.t) : null;
-      const mode = c % 2 === 0 ? 'teleport' : 'glide';
-      const scaleMul = c % 3 === 0 ? 1.25 : 1;
-      setBuddyMood(ch.mood || 'normal', ch.s, false);
-      await focusBuddyOn(el, mode, scaleMul);
-      if (!alive()) return;
-      if (ch.a) { try { ch.a(); } catch (e) {} }
-      await speakChunk(ch.s, alive);
-      if (!alive()) return;
-      await sleepAuto(ch.pause || 450);
-    }
-    clearGemiFocus();
-    await sleepAuto(600);
+    await runSlideScript(idx, alive);
+    if (!alive()) return;
+    await sleepAuto(500);
   }
   if (alive()) stopAutoPresentation();
 }
@@ -664,6 +927,8 @@ function openSlide(index) {
   if (currentSlide === 1) animateCounterStat();
   if (currentSlide !== 5 && typeof stopClassroom === 'function') stopClassroom();
   if (currentSlide !== 6 && typeof stopEppClass === 'function') stopEppClass();
+  if (typeof stopSlideTour === 'function') stopSlideTour();
+  clearGemiFocus();
   if (window.__triggerWarp3D) window.__triggerWarp3D();
   updateBuddyForSlide(currentSlide);
   const topbarEl = document.querySelector('.topbar');
@@ -760,18 +1025,38 @@ document.getElementById('btnTimerReset').addEventListener('click', () => {
   renderTimer();
 });
 
-// ===== 5. SLIDE 2: RADAR MICROORGANISMOS + FLIP CARDS 3D =====
-document.querySelectorAll('.microbe-card').forEach(card => {
+// ===== 5. SLIDE 1 & 2: PROTAGONISMO INTERACTIVO DE GEMI =====
+document.querySelectorAll('.hero-highlights .hl-item').forEach((card, idx) => {
+  card.addEventListener('click', () => {
+    const line = (autoScripts[0] && autoScripts[0][2 + idx]) ? autoScripts[0][2 + idx].s : buddyLines[0];
+    gemiSpotlightReact(card, line, { mood: 'happyOpen', gesture: 'point', speak: soundEnabled, scaleMul: 1.1 });
+  });
+});
+const heroProductImg = document.querySelector('.floating-product');
+if (heroProductImg) {
+  heroProductImg.addEventListener('click', () => {
+    const line = (autoScripts[0] && autoScripts[0][5]) ? autoScripts[0][5].s : buddyLines[0];
+    gemiSpotlightReact(heroProductImg, line, { mood: 'happyOpen', gesture: 'cheer', speak: soundEnabled, scaleMul: 1.12 });
+  });
+}
+
+document.querySelectorAll('.microbe-card').forEach((card, idx) => {
   card.addEventListener('click', () => {
     document.querySelectorAll('.microbe-card').forEach(c => c.classList.remove('active-microbe'));
     card.classList.add('active-microbe');
+    const line = (autoScripts[1] && autoScripts[1][2 + idx]) ? autoScripts[1][2 + idx].s : card.dataset.detail;
+    gemiSpotlightReact(card, line, { gesture: 'point', speak: soundEnabled, scaleMul: 1.08 });
   });
 });
 
-document.querySelectorAll('.flip-card').forEach(fc => {
+document.querySelectorAll('.flip-card').forEach((fc, idx) => {
   fc.addEventListener('click', () => {
     fc.classList.toggle('flipped');
     playTone(580, 0.05);
+    const isFlipped = fc.classList.contains('flipped');
+    if (isFlipped && autoScripts[1] && autoScripts[1][6 + idx]) {
+      gemiSpotlightReact(fc, autoScripts[1][6 + idx].s, { mood: 'happyOpen', gesture: 'nod', speak: soundEnabled });
+    }
   });
 });
 
@@ -797,23 +1082,30 @@ btnRunSim.addEventListener('click', () => {
   btnRunSim.textContent = 'Simulando en 3D...';
   simEco.classList.remove('show');
   if (window.__setBiocideSimPhase) window.__setBiocideSimPhase(1);
+  const simView = document.getElementById('simViewport');
+  gemiSpotlightReact(simView, 'Fase 1: Ataque por oxidación rápida al patógeno 3D.', { gesture: 'point', speak: false });
 
   simPills.forEach((p, idx) => p.classList.toggle('active', idx === 0));
-  simCap.textContent = 'Fase 1: Las moléculas de ácido peracético rodean y atacan por oxidación rápida al patógeno 3D.';
+  simCap.textContent = 'Fase 1: Las moléculas rodean y oxidan al patógeno 3D.';
 
   setTimeout(() => {
     simPills.forEach((p, idx) => p.classList.toggle('active', idx === 1));
     if (window.__setBiocideSimPhase) window.__setBiocideSimPhase(2);
-    simCap.textContent = 'Fase 2: En 5–10 minutos de contacto logra 99.999% de neutralización.';
+    simCap.textContent = 'Fase 2: En 5–10 minutos logra 99.999% de neutralización.';
+    if (!autoMode) {
+      setBuddyMood('normal', 'Fase 2: En 5–10 min logra 99.999% de reducción.', false);
+      lookBuddyAtElement(simView, 0.55);
+    }
   }, 1600);
 
   setTimeout(() => {
     simPills.forEach((p, idx) => p.classList.toggle('active', idx === 2));
     if (window.__setBiocideSimPhase) window.__setBiocideSimPhase(3);
     simEco.classList.add('show');
-    simCap.textContent = 'Fase 3: ¡Cero residuos tóxicos! Se descompone en Oxígeno, Agua y Ácido Acético.';
+    simCap.textContent = 'Fase 3: ¡Cero residuos tóxicos! Oxígeno, Agua y Ácido Acético.';
     btnRunSim.textContent = '↻ Volver a simular';
     simRunning = false;
+    gemiSpotlightReact(document.querySelector('.biodeg-banner'), '¡Cero residuos tóxicos! Solo O₂, Agua y Ácido Acético.', { mood: 'happy', gesture: 'cheer', speak: false });
   }, 3200);
 });
 
@@ -825,6 +1117,8 @@ document.querySelectorAll('.mat-chip').forEach(chip => {
     const isOk = chip.dataset.ok === 'true';
     chip.classList.add(isOk ? 'selected-ok' : 'selected-no');
     matFeedback.innerHTML = `<span class="scan-dot"></span> ${chip.dataset.msg}`;
+    gemiSpotlightReact(chip, chip.dataset.msg, { mood: isOk ? 'happy' : 'alert', gesture: isOk ? 'nod' : 'alertShake', speak: false });
+    lookBuddyAtElement(matFeedback, 0.35);
   });
 });
 
@@ -836,6 +1130,7 @@ document.getElementById('btnChlorineAlert').addEventListener('click', () => {
   box.classList.add('hazard-flash');
   if (hazardOverlay) hazardOverlay.classList.remove('hidden');
   playTone(220, 0.35, 'sawtooth', 0.07);
+  gemiSpotlightReact(box, 'Regla de oro: nunca mezclar con cloro, porque libera gas tóxico.', { mood: 'alert', gesture: 'alertShake', speak: soundEnabled, scaleMul: 1.16 });
 });
 document.getElementById('btnCloseHazard').addEventListener('click', () => {
   hazardOverlay.classList.add('hidden');
@@ -888,12 +1183,21 @@ document.querySelectorAll('.task-btn').forEach(btn => {
     const rinseNote = btn.dataset.rinseOk === 'ok'
       ? '✅ ¡Ojo! Esta dilución NO requiere enjuague posterior.'
       : '💧 Recuerda enjuagar después de los 5 a 10 minutos.';
-    setBuddyMood('normal', rinseNote, false);
+    const resCard = document.querySelector('.calc-result-card');
+    gemiSpotlightReact(resCard, rinseNote, { mood: btn.dataset.rinseOk === 'ok' ? 'happy' : 'normal', gesture: 'nod', speak: false });
+    lookBuddyAtElement(document.getElementById('resAmount'), 0.45);
   });
 });
-litersRange.addEventListener('input', updateCalc);
+litersRange.addEventListener('input', () => {
+  updateCalc();
+  if (!autoMode) lookBuddyAtElement(document.getElementById('resAmount'), parseInt(litersRange.value, 10) / 20);
+});
 document.querySelectorAll('.preset-btn').forEach(btn => {
-  btn.addEventListener('click', () => { litersRange.value = btn.dataset.liters; updateCalc(); });
+  btn.addEventListener('click', () => {
+    litersRange.value = btn.dataset.liters;
+    updateCalc();
+    if (!autoMode) lookBuddyAtElement(document.getElementById('resAmount'), 0.5);
+  });
 });
 
 // ===== 9. SLIDE 6: FLUJO DE TURNO — CLASE GUIADA POR GEMI =====
@@ -913,10 +1217,11 @@ let classTimer = null;
 function stopClassroom() {
   classRunning = false;
   clearTimeout(classTimer);
+  clearGemiFocus();
   stopActiveVoice();
   stepBoxes.forEach(b => b.classList.remove('teaching', 'dimmed'));
   if (btnTeachSteps) btnTeachSteps.textContent = '🎓 Que Gemi explique los 4 pasos';
-  if (classroomStatus) classroomStatus.textContent = 'Haz clic en un paso o inicia la explicación guiada de los 4 pasos.';
+  if (classroomStatus) classroomStatus.textContent = 'Toca un paso o inicia la explicación guiada.';
 }
 
 function teachSingleStep(idx, autoAdvance = false) {
@@ -924,19 +1229,26 @@ function teachSingleStep(idx, autoAdvance = false) {
     stopClassroom();
     if (classroomStatus) classroomStatus.textContent = '✅ ¡Excelente! Gemi terminó de explicar los 4 pasos del turno.';
     setBuddyMood('happy', '¡Listo equipo! Ya dominan los 4 pasos del turno. 🎉', false);
+    playBuddyGesture('cheer');
     return;
   }
 
   const box = stepBoxes[idx];
+  clearGemiFocus();
   stepBoxes.forEach((b, i) => {
     b.classList.toggle('teaching', i === idx);
     b.classList.toggle('dimmed', i !== idx);
   });
-  box.classList.add('done');
+  box.classList.add('done', 'gemi-focus');
   box.querySelector('.step-check').textContent = '✓';
+  if (slides[5]) slides[5].classList.add('stage-dimming');
+  currentReadingEl = box;
 
-  // Mover a Gemi justo al lado/encima de la tarjeta activa
+  // Mover a Gemi justo al lado/encima de la tarjeta activa y mirar el texto del paso
   moveBuddyToElement(box, 'glide', 1.18);
+  faceBuddyToward(box);
+  lookBuddyAtElement(box, 0.1);
+  playBuddyGesture('point');
 
   if (classroomStatus) classroomStatus.textContent = `Gemi explicando el Paso ${idx + 1} de 4...`;
   const text = stepSpeeches[idx];
@@ -1040,7 +1352,9 @@ function teachEppStep(idx, autoAdvance = false) {
     stopEppClass();
     if (eppStageTag) eppStageTag.textContent = '🛡️ ¡Gemi 100% Protegido!';
     if (eppHint) eppHint.textContent = '🛡️ ¡Gemi 100% protegido con todo su EPP!';
-    if (eppSpeechBubble) eppSpeechBubble.textContent = '¡Listo, protección completa!';
+    if (eppSpeechBubble) setBubbleContent(eppSpeechBubble, '¡Listo, protección completa!');
+    playBuddyGesture('cheer');
+    lookBuddyAtElement(null, 0.5, eppStageTag);
     return;
   }
   const card = eppCards[idx];
@@ -1054,7 +1368,12 @@ function teachEppStep(idx, autoAdvance = false) {
   playBuddyGesture('wave');
 
   const text = eppSpeeches[zone] || card.dataset.hint;
-  if (eppSpeechBubble) eppSpeechBubble.textContent = text;
+  if (eppSpeechBubble) {
+    setBubbleContent(eppSpeechBubble, text);
+    currentReadingEl = eppSpeechBubble;
+    const pill = document.querySelector(`.eq-pill[data-eq="${zone}"]`);
+    lookBuddyAtElement(eppSpeechBubble, 0.06, pill || eppStageTag);
+  }
   const goNext = () => {
     if (!autoAdvance || !eppClassRunning) return;
     teachEppStep(idx + 1, true);
@@ -1071,6 +1390,19 @@ eppCards.forEach((card, idx) => {
     teachEppStep(idx, false);
   });
 });
+
+const eppGemiSvg = document.getElementById('eppGemiSvg');
+if (eppGemiSvg) {
+  eppGemiSvg.addEventListener('click', () => {
+    if (eppClassRunning) {
+      stopEppClass();
+    } else {
+      eppClassRunning = true;
+      if (btnTeachEpp) btnTeachEpp.textContent = '⏹️ Detener explicación';
+      teachEppStep(0, true);
+    }
+  });
+}
 
 if (btnTeachEpp) {
   btnTeachEpp.addEventListener('click', () => {
@@ -1178,24 +1510,54 @@ drawCanvas.addEventListener('pointermove', (e) => {
 });
 window.addEventListener('pointerup', () => { isDrawing = false; });
 
-// ===== 10B. SLIDE 8: TERMÓMETRO DE ALMACÉN =====
+// ===== 10B. SLIDE 8: TERMÓMETRO DE ALMACÉN + COLUMNAS =====
 const thermoRange = document.getElementById('thermoRange');
 const thermoBadge = document.getElementById('thermoBadge');
 const thermoMsg = document.getElementById('thermoMsg');
+let lastThermoDanger = false;
 if (thermoRange) {
   thermoRange.addEventListener('input', () => {
     const t = parseInt(thermoRange.value, 10);
+    const bar = document.querySelector('.thermo-bar');
     if (t <= 35) {
       thermoBadge.textContent = `${t} °C · Zona Segura`;
       thermoBadge.className = 'thermo-badge ok';
-      thermoMsg.textContent = '✅ Temperatura óptima: el producto conserva su estabilidad hasta 12 meses.';
+      thermoMsg.textContent = '✅ Temperatura óptima: estabilidad garantizada hasta 12 meses.';
+      if (!autoMode) {
+        if (lastThermoDanger) setBuddyMood('happy', '✅ Zona segura: debajo de 35 °C se conserva perfecto.', false);
+        lastThermoDanger = false;
+        currentReadingEl = thermoBadge;
+        moveBuddyToElement(bar, 'glide', 1.05);
+        faceBuddyToward(bar);
+        lookBuddyAtElement(thermoBadge, 0.5);
+      }
     } else {
       thermoBadge.textContent = `${t} °C · ¡Alerta Calor!`;
       thermoBadge.className = 'thermo-badge danger';
-      thermoMsg.textContent = '⚠️ Supera el máximo de 35 °C: reubicar el porrón en un área fresca y ventilada.';
+      thermoMsg.textContent = '⚠️ Supera 35 °C: reubicar el porrón a un área fresca y ventilada.';
+      if (!autoMode) {
+        if (!lastThermoDanger) {
+          setBuddyMood('alert', '⚠️ ¡Cuidado! Supera 35 °C, hay que moverlo a un área fresca.', false);
+          playBuddyGesture('alertShake');
+        }
+        lastThermoDanger = true;
+        currentReadingEl = thermoBadge;
+        moveBuddyToElement(bar, 'glide', 1.12);
+        faceBuddyToward(bar);
+        lookBuddyAtElement(thermoBadge, 0.5);
+      }
     }
   });
 }
+document.querySelectorAll('.storage-col').forEach(col => {
+  col.addEventListener('click', () => {
+    const isDo = col.classList.contains('do');
+    gemiSpotlightReact(col, isDo
+      ? 'Porrón de 20 L siempre vertical, cerrado y máximo a 35 °C.'
+      : 'Nunca dejar al sol ni junto a alimentos, y ¡jamás mezclar con cloro!',
+      { mood: isDo ? 'happy' : 'alert', gesture: isDo ? 'nod' : 'alertShake', speak: false });
+  });
+});
 
 // ===== 11. SLIDE 9: EMERGENCIAS =====
 const emergencyData = {
@@ -1256,11 +1618,20 @@ function renderEmergency(key) {
   `;
   if (window.__setEmergency3D) window.__setEmergency3D(key);
 }
-document.querySelectorAll('.em-tab').forEach(tab => {
+document.querySelectorAll('.em-tab').forEach((tab, idx) => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.em-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     renderEmergency(tab.dataset.em);
+    const danger = tab.dataset.em === 'ingestion' || tab.dataset.em === 'derrame';
+    const line = (autoScripts[8] && autoScripts[8][1 + idx]) ? autoScripts[8][1 + idx].s : buddyLines[8];
+    gemiSpotlightReact(document.querySelector('.em-layout'), line, {
+      mood: danger ? 'alert' : 'normal',
+      gesture: danger ? 'alertShake' : 'point',
+      speak: soundEnabled,
+      scaleMul: 1.08
+    });
+    lookBuddyAtElement(emPanel, 0.2);
   });
 });
 
@@ -1340,8 +1711,34 @@ function renderQuiz() {
     quizOptions.appendChild(btn);
   });
 }
-btnQuizNext.addEventListener('click', () => { qIndex++; renderQuiz(); });
-btnQuizRestart.addEventListener('click', () => { qIndex = 0; qScore = 0; renderQuiz(); });
+btnQuizNext.addEventListener('click', () => {
+  qIndex++;
+  renderQuiz();
+  if (!autoMode) {
+    currentReadingEl = quizQuestion;
+    moveBuddyToElement(quizQuestion, 'glide', 1.1);
+    lookBuddyAtElement(quizQuestion, 0.25);
+  }
+});
+btnQuizRestart.addEventListener('click', () => {
+  qIndex = 0; qScore = 0;
+  renderQuiz();
+  if (!autoMode) {
+    currentReadingEl = quizQuestion;
+    moveBuddyToElement(quizQuestion, 'glide', 1.1);
+    lookBuddyAtElement(quizQuestion, 0.25);
+  }
+});
+const btnQuizSpeak = document.getElementById('btnQuizSpeak');
+if (btnQuizSpeak) {
+  btnQuizSpeak.addEventListener('click', () => {
+    const letters = ['A', 'B', 'C', 'D'];
+    const item = quizData[qIndex];
+    if (!item) return;
+    const spoken = `Pregunta ${qIndex + 1}. ${item.q} ` + item.options.map((o, i) => `Opción ${letters[i]}: ${o}.`).join(' ');
+    gemiSpotlightReact(quizQuestion, spoken, { gesture: 'point', speak: soundEnabled, scaleMul: 1.15 });
+  });
+}
 
 // Pocket Card Modal
 const pocketModal = document.getElementById('pocketModal');
@@ -1512,24 +1909,37 @@ function speakBuddy(text) {
   });
 }
 
+const normalEyesHtml = '<rect x="5" y="5" width="2" height="2" fill="#2DD4BF"/><rect x="9" y="5" width="2" height="2" fill="#2DD4BF"/><g id="buddyPupils"><rect x="5.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="9.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="5.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/><rect x="9.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/></g>';
+const happyOpenEyesHtml = '<rect x="5" y="5" width="2" height="2" fill="#4ADE80"/><rect x="9" y="5" width="2" height="2" fill="#4ADE80"/><g id="buddyPupils"><rect x="5.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="9.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="5.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/><rect x="9.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/></g>';
+const alertEyesHtml = '<rect x="5" y="4" width="2" height="3" fill="#EF4444"/><rect x="9" y="4" width="2" height="3" fill="#EF4444"/><g id="buddyPupils"><rect x="5.55" y="5.0" width="0.9" height="1.15" fill="#020617"/><rect x="9.55" y="5.0" width="0.9" height="1.15" fill="#020617"/></g>';
+const happyEyesHtml = '<rect x="5" y="5" width="2" height="1" fill="#4ADE80"/><rect x="9" y="5" width="2" height="1" fill="#4ADE80"/><rect x="4" y="6" width="1" height="1" fill="#4ADE80"/><rect x="7" y="6" width="1" height="1" fill="#4ADE80"/><rect x="8" y="6" width="1" height="1" fill="#4ADE80"/><rect x="11" y="6" width="1" height="1" fill="#4ADE80"/>';
+
 function setBuddyMood(mood, text, shouldSpeak = false) {
   if (!buddyEyes || !buddyBubble) return;
   if (text) {
-    buddyBubble.textContent = text;
+    setBubbleContent(buddyBubble, text);
     buddyBubble.classList.remove('collapsed');
-    if (eppSpeechBubble && currentSlide === 6) eppSpeechBubble.textContent = text;
+    if (eppSpeechBubble && currentSlide === 6) setBubbleContent(eppSpeechBubble, text);
     buddyPaused = true;
     clearTimeout(buddyResumeTimer);
     buddyResumeTimer = setTimeout(() => { buddyPaused = false; }, 5200);
     if (shouldSpeak) speakBuddy(text);
   }
+  const eppEyesEl = document.getElementById('eppEyes');
   if (mood === 'happy') {
-    buddyEyes.innerHTML = '<rect x="5" y="5" width="2" height="1" fill="#4ADE80"/><rect x="9" y="5" width="2" height="1" fill="#4ADE80"/><rect x="4" y="6" width="1" height="1" fill="#4ADE80"/><rect x="7" y="6" width="1" height="1" fill="#4ADE80"/><rect x="8" y="6" width="1" height="1" fill="#4ADE80"/><rect x="11" y="6" width="1" height="1" fill="#4ADE80"/>';
+    buddyEyes.innerHTML = happyEyesHtml;
+    if (eppEyesEl) eppEyesEl.innerHTML = happyEyesHtml;
+  } else if (mood === 'happyOpen') {
+    buddyEyes.innerHTML = happyOpenEyesHtml;
+    if (eppEyesEl) eppEyesEl.innerHTML = happyOpenEyesHtml.replace('buddyPupils', 'eppPupils');
   } else if (mood === 'alert') {
-    buddyEyes.innerHTML = '<rect x="5" y="4" width="2" height="3" fill="#EF4444"/><rect x="9" y="4" width="2" height="3" fill="#EF4444"/>';
+    buddyEyes.innerHTML = alertEyesHtml;
+    if (eppEyesEl) eppEyesEl.innerHTML = alertEyesHtml.replace('buddyPupils', 'eppPupils');
   } else {
-    buddyEyes.innerHTML = '<rect x="5" y="5" width="2" height="2" fill="#2DD4BF"/><rect x="9" y="5" width="2" height="2" fill="#2DD4BF"/>';
+    buddyEyes.innerHTML = normalEyesHtml;
+    if (eppEyesEl) eppEyesEl.innerHTML = normalEyesHtml.replace('buddyPupils', 'eppPupils');
   }
+  applyGazeAttrs();
 }
 
 function updateBuddyForSlide(idx) {
@@ -1537,15 +1947,25 @@ function updateBuddyForSlide(idx) {
   if (buddyEppGear) buddyEppGear.classList.toggle('hidden', idx !== 6);
   // En la lámina de EPP (Slide 7), Gemi ya está en el centro del escenario -> ocultamos el flotante para no duplicarlo
   if (buddyEl) buddyEl.classList.toggle('hidden-for-stage', idx === 6);
-  if (autoMode) return; // en modo automático el guion controla todo
+  if (autoMode || slideTourRunning) return; // el guion controla todo
   const line = buddyLines[idx] || '¡Seguimos!';
   const curtainHidden = welcomeCurtain ? welcomeCurtain.classList.contains('hidden') : true;
   const header = slides[idx] ? slides[idx].querySelector('.slide-header, .closing-left h2, h1') : null;
-  if (curtainHidden && header) setTimeout(() => { if (!autoMode && currentSlide === idx) moveBuddyToElement(header, 'teleport', 1.15); }, 750);
+  currentReadingEl = header || null;
+  if (curtainHidden && header) {
+    setTimeout(() => {
+      if (!autoMode && !slideTourRunning && currentSlide === idx) {
+        moveBuddyToElement(header, 'teleport', 1.15);
+        faceBuddyToward(header);
+        lookBuddyAtElement(header, 0.25);
+      }
+    }, 750);
+  }
   if (idx === 10 && curtainHidden) {
     // Reverencia y lluvia de estrellas en el Cierre (Slide 11)
     setBuddyMood('happy', line, true);
     spawnConfetti(48);
+    playBuddyGesture('cheer');
     const svg = document.getElementById('buddySvg');
     if (svg && typeof gsap !== 'undefined') {
       gsap.fromTo(svg, { scaleY: 1 }, { scaleY: 0.78, duration: 0.35, yoyo: true, repeat: 1 });
@@ -1555,15 +1975,10 @@ function updateBuddyForSlide(idx) {
   setBuddyMood(idx === 3 ? 'alert' : 'normal', line, curtainHidden);
 }
 
-// Seguimiento de ojos + juego con Puntero Láser (L)
+// Registro de cursor SOLO para puntero láser (los ojos de Gemi leen el contenido, no siguen al cursor)
 window.addEventListener('mousemove', (e) => {
   lastMouseX = e.clientX;
   lastMouseY = e.clientY;
-  if (buddyEyes) {
-    const dx = Math.max(-0.8, Math.min(0.8, (e.clientX - (buddyX + 32)) / 240));
-    const dy = Math.max(-0.6, Math.min(0.6, (e.clientY - (buddyY + 32)) / 240));
-    buddyEyes.setAttribute('transform', `translate(${dx.toFixed(2)}, ${dy.toFixed(2)})`);
-  }
 });
 
 if (buddyEl) {
@@ -1597,9 +2012,14 @@ if (buddyEl) {
   requestAnimationFrame(walkLoop);
 
   buddyEl.addEventListener('click', () => {
-    const line = buddyLines[currentSlide] || buddyBubble.textContent;
     spawnBuddySparkles(buddyX + 32, buddyY + 32);
-    setBuddyMood(currentSlide === 3 ? 'alert' : 'normal', line, !autoMode);
+    if (autoMode) return;
+    if (slideTourRunning) {
+      stopSlideTour();
+      setBuddyMood('normal', buddyLines[currentSlide], false);
+    } else {
+      startSlideTour(currentSlide);
+    }
   });
 
   // Doble clic o clic derecho abre Menú Rápido de Gemi
@@ -1615,12 +2035,16 @@ if (buddyEl) {
     buddyQuickMenu.querySelectorAll('.bqm-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const act = btn.dataset.act;
-        if (act === 'greet') {
+        if (act === 'explain') {
+          startSlideTour(currentSlide);
+        } else if (act === 'greet') {
           setBuddyMood('happy', '¡Bienvenidos personal de enfermería de Hospital Arboledas! Es un gusto saludarlos.', true);
           spawnBuddySparkles(buddyX + 32, buddyY + 32);
+          playBuddyGesture('wave');
         } else if (act === 'celebrate') {
           setBuddyMood('happy', '¡Excelente participación equipo! 🎉', true);
           spawnConfetti(45);
+          playBuddyGesture('cheer');
         } else if (act === 'park') {
           buddyParked = !buddyParked;
           if (buddyParked) {
@@ -1642,16 +2066,16 @@ if (buddyEl) {
 
   setInterval(() => {
     const curtainHidden = welcomeCurtain ? welcomeCurtain.classList.contains('hidden') : true;
-    if (curtainHidden && !buddyPaused && !buddySleeping && Date.now() - lastActivityTime > 14000) {
+    if (curtainHidden && !buddyPaused && !buddySleeping && !autoMode && !slideTourRunning && !classRunning && !eppClassRunning && Date.now() - lastActivityTime > 14000) {
       buddySleeping = true;
       if (buddyZzz) buddyZzz.classList.remove('hidden');
       if (buddyEyes) buddyEyes.innerHTML = '<rect x="5" y="6" width="2" height="1" fill="#64748B"/><rect x="9" y="6" width="2" height="1" fill="#64748B"/>';
       return;
     }
-    if (buddySleeping || !buddyEyes || buddyEyes.innerHTML.includes('#EF4444')) return;
-    const prev = buddyEyes.innerHTML;
-    buddyEyes.innerHTML = '<rect x="5" y="6" width="2" height="1" fill="#2DD4BF"/><rect x="9" y="6" width="2" height="1" fill="#2DD4BF"/>';
-    setTimeout(() => { if (!buddySleeping) buddyEyes.innerHTML = prev; }, 160);
+    if (buddySleeping || !buddyEyes || !buddyEyes.querySelector('#buddyPupils')) return;
+    if (typeof anime !== 'undefined') {
+      anime({ targets: '#buddyBlink, #eppBlink', scaleY: [1, 0.08, 1], duration: 190, easing: 'easeInOutQuad' });
+    }
   }, 3800);
 }
 

@@ -895,11 +895,12 @@ body.light-mode .welcome-curtain {
   transition: opacity 0.35s ease;
 }
 
-#buddyArmL, #buddyArmR, #buddyStar, #buddyLegL, #buddyLegR {
+#buddyArmL, #buddyArmR, #buddyStar, #buddyLegL, #buddyLegR, .eye-blink-group {
   transform-box: fill-box;
   transform-origin: center top;
 }
 #buddyStar { transform-origin: center bottom; }
+.eye-blink-group { transform-origin: center; }
 
 .buddy-mouth {
   transform-box: fill-box;
@@ -911,19 +912,41 @@ body.light-mode .welcome-curtain {
   pointer-events: none !important;
 }
 
+.epp-gemi-svg { cursor: pointer; }
+
 .epp-speech-bubble {
-  background: rgba(7, 23, 42, 0.92);
+  background: rgba(7, 23, 42, 0.94);
   border: 1.5px solid var(--cyan);
   color: #F8FAFC;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  padding: 8px 14px;
+  line-height: 1.45;
+  padding: 9px 15px;
   border-radius: 14px;
   text-align: center;
-  max-width: 480px;
+  max-width: 500px;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.25s, box-shadow 0.25s;
 }
 body.light-mode .epp-speech-bubble { background: #fff; color: #0B2D48; }
+
+.kw {
+  display: inline;
+  transition: color 0.1s ease, background-color 0.1s ease;
+}
+.kw.spoken { color: #99F6E4; }
+.kw.reading {
+  background: rgba(45, 212, 191, 0.28);
+  color: #FFFFFF;
+  border-bottom: 2px solid var(--cyan);
+  border-radius: 4px;
+  padding: 0 3px;
+}
+body.light-mode .kw.spoken { color: #0F766E; }
+body.light-mode .kw.reading {
+  background: rgba(13, 148, 136, 0.18);
+  color: #0B2D48;
+}
 
 .epp-equipped-badges {
   display: flex;
@@ -1157,7 +1180,7 @@ body.light-mode .buddy-bubble {
 .quiz-opt.correct { background: rgba(16, 185, 129, 0.24); border-color: #34D399; color: #A7F3D0; }
 .quiz-opt.wrong { background: rgba(239, 68, 68, 0.24); border-color: var(--red); color: #FECACA; }
 .quiz-feedback { padding: 12px 16px; border-radius: 12px; font-size: 0.92rem; background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.3); margin-bottom: 14px; }
-.quiz-actions { display: flex; gap: 10px; }
+.quiz-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
 /* Slide 11: Closing */
 .closing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: center; }
