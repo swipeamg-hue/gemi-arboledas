@@ -225,29 +225,39 @@ function playBuddyGesture(kind) {
   }
 }
 
-// 4 cuadros reales de boca pixelada (0: cerrada, 1: media, 2: ancha, 3: abierta O/A)
+// 5 visemas fonéticos reales en pixel-art: 0 cerrada, 1 consonante, 2 E/I, 3 A abierta, 4 O/U redonda
 const mouthFrames = [
-  '',
-  '<rect x="7" y="8" width="2" height="1" fill="#F8FAFC"/>',
-  '<rect x="6" y="8" width="4" height="1" fill="#F8FAFC"/>',
-  '<rect x="6" y="7" width="4" height="2" fill="#F8FAFC"/><rect x="7" y="7" width="2" height="1" fill="#F43F5E"/>'
+  '<rect x="7" y="8" width="2" height="1" fill="#1E293B"/>',
+  '<rect x="6" y="8" width="4" height="1" fill="#99F6E4"/>',
+  '<rect x="6" y="8" width="4" height="1" fill="#F8FAFC"/><rect x="7" y="9" width="2" height="1" fill="#F43F5E"/>',
+  '<rect x="6" y="7" width="4" height="3" fill="#020617"/><rect x="6" y="7" width="4" height="1" fill="#F8FAFC"/><rect x="7" y="8" width="2" height="2" fill="#F43F5E"/>',
+  '<rect x="7" y="7" width="2" height="2" fill="#F43F5E"/><rect x="7" y="7" width="2" height="1" fill="#F8FAFC"/>'
 ];
 let lastMouthState = -1;
-let lastMouthSwitch = 0;
 function setMouthFrame(state) {
   if (state === lastMouthState) return;
   lastMouthState = state;
-  const html = mouthFrames[state] || '';
+  const html = mouthFrames[state] || mouthFrames[0];
   [document.getElementById('buddyMouth'), document.getElementById('eppGemiMouth')].forEach(el => {
     if (!el) return;
     el.innerHTML = html;
-    el.classList.toggle('hidden', state === 0);
+    el.classList.remove('hidden');
   });
+}
+setMouthFrame(0);
+
+function visemeAtTime(timeline, ms) {
+  if (!timeline || !timeline.length) return 0;
+  let lo = 0, hi = timeline.length - 1, ans = 0;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (timeline[mid][0] <= ms) { ans = timeline[mid][1]; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return ans;
 }
 
 let activeAudio = null;
-let audioAnalyser = null;
-let audioFreqBuf = null;
 let lipRafId = null;
 
 function stopActiveVoice() {
@@ -261,24 +271,7 @@ function stopActiveVoice() {
   stopLipSync();
 }
 
-function setupAudioAnalyser(audioEl) {
-  if (audioAnalyser) return true;
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
-    const src = audioCtx.createMediaElementSource(audioEl);
-    audioAnalyser = audioCtx.createAnalyser();
-    audioAnalyser.fftSize = 64;
-    src.connect(audioAnalyser);
-    audioAnalyser.connect(audioCtx.destination);
-    audioFreqBuf = new Uint8Array(audioAnalyser.frequencyBinCount);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// Habla usando MP3 neuronal de Jorge (con lip-sync real abrir/cerrar por sílaba) o respaldo Web Speech
+// Habla usando MP3 neuronal de Jorge + línea exacta de visemas WordBoundary (0ms de desfase)
 function speakOne(text) {
   return new Promise(resolve => {
     let done = false;
@@ -301,39 +294,22 @@ function speakOne(text) {
         if (!activeAudio) activeAudio = new Audio();
         activeAudio.pause();
         activeAudio.src = `assets/audio/${mp3File}`;
-        const hasAnalyser = !window.location.protocol.startsWith('file') && setupAudioAnalyser(activeAudio);
+        const timeline = window.__audioTimings && window.__audioTimings[mp3File];
         startLipSync();
         playBuddyGesture('speak');
 
-        if (hasAnalyser) {
-          let rollingAvg = 45;
-          let toggle = 0;
-          const tickLip = (now) => {
+        if (timeline && timeline.length) {
+          const tickViseme = () => {
             if (done || activeAudio.paused) return;
-            if (now - lastMouthSwitch > 95) {
-              lastMouthSwitch = now;
-              audioAnalyser.getByteFrequencyData(audioFreqBuf);
-              let sum = 0;
-              for (let i = 2; i < 14; i++) sum += audioFreqBuf[i];
-              const level = sum / 12;
-              rollingAvg = rollingAvg * 0.85 + level * 0.15;
-              const delta = level - rollingAvg;
-              if (level < 20 || delta < -12) {
-                setMouthFrame(0); // cierra entre pausas/sílabas
-              } else if (delta > 16 || level > 125) {
-                setMouthFrame(3); // vocal abierta
-              } else {
-                toggle = (toggle + 1) % 3;
-                setMouthFrame(toggle === 0 ? 0 : toggle); // alterna cerrar/media/ancha
-              }
-            }
-            lipRafId = requestAnimationFrame(tickLip);
+            const ms = activeAudio.currentTime * 1000;
+            setMouthFrame(visemeAtTime(timeline, ms));
+            lipRafId = requestAnimationFrame(tickViseme);
           };
-          activeAudio.onplay = () => { lipRafId = requestAnimationFrame(tickLip); };
+          activeAudio.onplay = () => { lipRafId = requestAnimationFrame(tickViseme); };
         } else {
-          const seq = [1, 3, 2, 0, 2, 3, 1, 0];
+          const seq = [1, 3, 2, 0, 4, 2, 1, 0];
           let si = 0;
-          lipTimer = setInterval(() => { setMouthFrame(seq[si++ % seq.length]); }, 115);
+          lipTimer = setInterval(() => { setMouthFrame(seq[si++ % seq.length]); }, 110);
         }
 
         activeAudio.onended = finish;
@@ -351,8 +327,8 @@ function speakOne(text) {
 
     if (!soundEnabled || !('speechSynthesis' in window)) {
       startLipSync();
-      const seq = [1, 2, 0, 3, 1, 0]; let si = 0;
-      lipTimer = setInterval(() => { setMouthFrame(seq[si++ % seq.length]); }, 125);
+      const seq = [1, 3, 4, 0, 2, 1, 0]; let si = 0;
+      lipTimer = setInterval(() => { setMouthFrame(seq[si++ % seq.length]); }, 120);
       watchdog = setTimeout(finish, Math.max(2200, words * 400));
       return;
     }
@@ -368,7 +344,7 @@ function speakOne(text) {
     u.onboundary = (e) => { if (!e.name || e.name === 'word') { gotBoundary = true; pulseLipOnce(); } };
     u.onend = finish;
     u.onerror = finish;
-    lipTimer = setInterval(() => { if (started && !gotBoundary) pulseLipOnce(); }, 140);
+    lipTimer = setInterval(() => { if (started && !gotBoundary) pulseLipOnce(); }, 135);
     watchdog = setTimeout(finish, words * 650 + 5000);
     window.__gemiUtter = u;
     if (synth.paused) synth.resume();
@@ -1548,11 +1524,11 @@ function setBuddyMood(mood, text, shouldSpeak = false) {
     if (shouldSpeak) speakBuddy(text);
   }
   if (mood === 'happy') {
-    buddyEyes.innerHTML = '<rect x="5" y="6" width="2" height="1" fill="#4ADE80"/><rect x="9" y="6" width="2" height="1" fill="#4ADE80"/><rect x="4" y="7" width="1" height="1" fill="#4ADE80"/><rect x="7" y="7" width="1" height="1" fill="#4ADE80"/><rect x="8" y="7" width="1" height="1" fill="#4ADE80"/><rect x="11" y="7" width="1" height="1" fill="#4ADE80"/>';
+    buddyEyes.innerHTML = '<rect x="5" y="5" width="2" height="1" fill="#4ADE80"/><rect x="9" y="5" width="2" height="1" fill="#4ADE80"/><rect x="4" y="6" width="1" height="1" fill="#4ADE80"/><rect x="7" y="6" width="1" height="1" fill="#4ADE80"/><rect x="8" y="6" width="1" height="1" fill="#4ADE80"/><rect x="11" y="6" width="1" height="1" fill="#4ADE80"/>';
   } else if (mood === 'alert') {
-    buddyEyes.innerHTML = '<rect x="5" y="5" width="2" height="3" fill="#EF4444"/><rect x="9" y="5" width="2" height="3" fill="#EF4444"/>';
+    buddyEyes.innerHTML = '<rect x="5" y="4" width="2" height="3" fill="#EF4444"/><rect x="9" y="4" width="2" height="3" fill="#EF4444"/>';
   } else {
-    buddyEyes.innerHTML = '<rect x="5" y="6" width="2" height="2" fill="#2DD4BF"/><rect x="9" y="6" width="2" height="2" fill="#2DD4BF"/>';
+    buddyEyes.innerHTML = '<rect x="5" y="5" width="2" height="2" fill="#2DD4BF"/><rect x="9" y="5" width="2" height="2" fill="#2DD4BF"/>';
   }
 }
 
@@ -1669,12 +1645,12 @@ if (buddyEl) {
     if (curtainHidden && !buddyPaused && !buddySleeping && Date.now() - lastActivityTime > 14000) {
       buddySleeping = true;
       if (buddyZzz) buddyZzz.classList.remove('hidden');
-      if (buddyEyes) buddyEyes.innerHTML = '<rect x="5" y="7" width="2" height="1" fill="#64748B"/><rect x="9" y="7" width="2" height="1" fill="#64748B"/>';
+      if (buddyEyes) buddyEyes.innerHTML = '<rect x="5" y="6" width="2" height="1" fill="#64748B"/><rect x="9" y="6" width="2" height="1" fill="#64748B"/>';
       return;
     }
     if (buddySleeping || !buddyEyes || buddyEyes.innerHTML.includes('#EF4444')) return;
     const prev = buddyEyes.innerHTML;
-    buddyEyes.innerHTML = '<rect x="5" y="7" width="2" height="1" fill="#2DD4BF"/><rect x="9" y="7" width="2" height="1" fill="#2DD4BF"/>';
+    buddyEyes.innerHTML = '<rect x="5" y="6" width="2" height="1" fill="#2DD4BF"/><rect x="9" y="6" width="2" height="1" fill="#2DD4BF"/>';
     setTimeout(() => { if (!buddySleeping) buddyEyes.innerHTML = prev; }, 160);
   }, 3800);
 }
