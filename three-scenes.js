@@ -150,12 +150,17 @@
     molGroup.add(ring1, ring2);
 
     let isDragging = false, prevX = 0, prevY = 0;
-    molEl.addEventListener('pointerdown', (e) => { isDragging = true; prevX = e.clientX; prevY = e.clientY; });
+    molEl.addEventListener('pointerdown', (e) => {
+      isDragging = true; prevX = e.clientX; prevY = e.clientY;
+      try { molEl.setPointerCapture(e.pointerId); } catch (err) {}
+      if (typeof gsap !== 'undefined') gsap.fromTo(molGroup.scale, { x: 1.12, y: 1.12, z: 1.12 }, { x: 1, y: 1, z: 1, duration: 0.35, ease: 'back.out(2)' });
+    });
     window.addEventListener('pointerup', () => { isDragging = false; });
+    window.addEventListener('pointercancel', () => { isDragging = false; });
     window.addEventListener('pointermove', (e) => {
       if (!isDragging) return;
-      molGroup.rotation.y += (e.clientX - prevX) * 0.01;
-      molGroup.rotation.x += (e.clientY - prevY) * 0.01;
+      molGroup.rotation.y += (e.clientX - prevX) * 0.012;
+      molGroup.rotation.x += (e.clientY - prevY) * 0.012;
       prevX = e.clientX; prevY = e.clientY;
     });
 
@@ -262,14 +267,33 @@
     sceneBio.add(ecoGroup);
 
     let simPhase = 0;
+    let bioDrag = false, bioPrevX = 0, bioRotOffset = 0;
+    bioEl.addEventListener('pointerdown', (e) => {
+      bioDrag = true; bioPrevX = e.clientX;
+      try { bioEl.setPointerCapture(e.pointerId); } catch (err) {}
+      if (pathogenGroup.visible && typeof gsap !== 'undefined') {
+        gsap.fromTo(pathogenGroup.scale, { x: 0.82, y: 0.82, z: 0.82 }, { x: simPhase === 2 ? 0.04 : 1, y: simPhase === 2 ? 0.04 : 1, z: simPhase === 2 ? 0.04 : 1, duration: 0.4, ease: 'elastic.out(1, 0.5)' });
+      }
+      if (window.__onBioTap) window.__onBioTap();
+    });
+    window.addEventListener('pointerup', () => { bioDrag = false; });
+    window.addEventListener('pointercancel', () => { bioDrag = false; });
+    window.addEventListener('pointermove', (e) => {
+      if (!bioDrag) return;
+      bioRotOffset += (e.clientX - bioPrevX) * 0.014;
+      bioPrevX = e.clientX;
+    });
+
     window.__setBiocideSimPhase = (phase) => {
       simPhase = phase;
-      if (phase === 0) {
+      if (phase === 0 || phase === 1) {
         pathogenGroup.visible = true;
         pathogenGroup.scale.set(1, 1, 1);
         ecoGroup.visible = false;
-      } else if (phase === 2 && typeof gsap !== 'undefined') {
-        gsap.to(pathogenGroup.scale, { x: 0.04, y: 0.04, z: 0.04, duration: 0.75, ease: 'back.in(2)' });
+      } else if (phase === 2) {
+        pathogenGroup.visible = true;
+        ecoGroup.visible = false;
+        if (typeof gsap !== 'undefined') gsap.to(pathogenGroup.scale, { x: 0.04, y: 0.04, z: 0.04, duration: 0.75, ease: 'back.in(2)' });
       } else if (phase === 3) {
         pathogenGroup.visible = false;
         ecoGroup.visible = true;
@@ -282,7 +306,8 @@
     function renderBio() {
       requestAnimationFrame(renderBio);
       if (window.__activeSlideIndex !== 2) return;
-      pathogenGroup.rotation.y = Math.sin(Date.now() * 0.0015) * 0.45;
+      pathogenGroup.rotation.y = Math.sin(Date.now() * 0.0015) * 0.45 + bioRotOffset;
+      ecoGroup.rotation.y = bioRotOffset * 0.6;
       pathogenGroup.rotation.z = Math.sin(Date.now() * 0.001) * 0.12;
       swarm.forEach((m, idx) => {
         m.userData.angle += m.userData.speed * (simPhase === 1 ? 3.2 : 1);
@@ -381,11 +406,24 @@
       }
     };
 
+    let bkDrag = false, bkPrevX = 0;
+    beakerEl.addEventListener('pointerdown', (e) => {
+      bkDrag = true; bkPrevX = e.clientX;
+      try { beakerEl.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    window.addEventListener('pointerup', () => { bkDrag = false; });
+    window.addEventListener('pointercancel', () => { bkDrag = false; });
+    window.addEventListener('pointermove', (e) => {
+      if (!bkDrag) return;
+      bkGroup.rotation.y += (e.clientX - bkPrevX) * 0.02;
+      bkPrevX = e.clientX;
+    });
+
     let lastBkW = 0, lastBkH = 0;
     function renderBk() {
       requestAnimationFrame(renderBk);
       if (window.__activeSlideIndex !== 4) return;
-      bkGroup.rotation.y += 0.01;
+      if (!bkDrag) bkGroup.rotation.y += 0.01;
       const topY = -1.35 + liqMesh.scale.y * 2.5;
       bubbles3D.forEach(b => {
         b.position.y += b.userData.speed;
@@ -713,36 +751,60 @@
     let currentEm = 'ojos';
     emGroups.ojos.visible = true;
 
+    let emDrag = false, emPrevX = 0, emPrevY = 0, emRotY = 0, emRotX = 0;
+    emEl.addEventListener('pointerdown', (e) => {
+      emDrag = true; emPrevX = e.clientX; emPrevY = e.clientY;
+      try { emEl.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    window.addEventListener('pointerup', () => { emDrag = false; });
+    window.addEventListener('pointercancel', () => { emDrag = false; });
+    window.addEventListener('pointermove', (e) => {
+      if (!emDrag) return;
+      emRotY += (e.clientX - emPrevX) * 0.013;
+      emRotX = Math.max(-0.5, Math.min(0.5, emRotX + (e.clientY - emPrevY) * 0.01));
+      emPrevX = e.clientX; emPrevY = e.clientY;
+    });
+
     window.__setEmergency3D = (key) => {
       currentEm = key;
-      Object.entries(emGroups).forEach(([k, g]) => { g.visible = (k === key); });
+      emRotY = 0; emRotX = 0;
+      Object.entries(emGroups).forEach(([k, g]) => { g.visible = (k === key); g.rotation.set(0, 0, 0); });
     };
 
     function renderEm() {
       requestAnimationFrame(renderEm);
       if (window.__activeSlideIndex !== 8) return;
       waveUniforms.uTime.value = Date.now() * 0.001;
+      const activeGrp = emGroups[currentEm];
 
       if (currentEm === 'ojos') {
-        gOjos.rotation.y = Math.sin(Date.now() * 0.002) * 0.22;
+        gOjos.rotation.y = Math.sin(Date.now() * 0.002) * 0.22 + emRotY;
+        gOjos.rotation.x = emRotX;
         washRing1.rotation.z += 0.025;
         washRing2.rotation.z -= 0.018;
         eyeJets.forEach(s => { s.position.x += s.userData.speed; if (s.position.x > 2.8) s.position.x = -2.8; });
       } else if (currentEm === 'piel') {
-        gPiel.rotation.y += 0.006;
+        if (!emDrag) emRotY += 0.006;
+        gPiel.rotation.y = emRotY;
+        gPiel.rotation.x = emRotX;
         showerDrops.forEach(d => { d.position.y -= d.userData.speed; if (d.position.y < -1.35) d.position.y = 1.45; });
       } else if (currentEm === 'inhalacion') {
         const breath = 1 + Math.sin(Date.now() * 0.0032) * 0.11;
         lungL.scale.set(0.72 * breath, 1.32 * breath, 0.65 * breath);
         lungR.scale.set(0.72 * breath, 1.32 * breath, 0.65 * breath);
-        gInh.rotation.y = Math.sin(Date.now() * 0.0014) * 0.28;
+        gInh.rotation.y = Math.sin(Date.now() * 0.0014) * 0.28 + emRotY;
+        gInh.rotation.x = emRotX;
       } else if (currentEm === 'ingestion') {
-        gIng.rotation.y = Math.sin(Date.now() * 0.002) * 0.25;
+        gIng.rotation.y = Math.sin(Date.now() * 0.002) * 0.25 + emRotY;
+        gIng.rotation.x = emRotX;
         noRing.rotation.z += 0.02;
       } else if (currentEm === 'derrame') {
-        gDer.rotation.y += 0.006;
+        if (!emDrag) emRotY += 0.006;
+        gDer.rotation.y = emRotY;
+        gDer.rotation.x = emRotX;
         granules.forEach(g => { g.position.y -= g.userData.speed; g.rotation.x += 0.05; if (g.position.y < -1.15) g.position.y = 1.5; });
       }
+      void activeGrp;
 
       const nw = emEl.clientWidth, nh = emEl.clientHeight;
       if (nw > 4 && nh > 4 && (nw !== renEm._lastW || nh !== renEm._lastH)) {

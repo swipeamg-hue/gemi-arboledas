@@ -1,4 +1,4 @@
-const CACHE_NAME = "swipe-arboledas-0dfc721ac8";
+const CACHE_NAME = "swipe-arboledas-589696b189";
 const PRECACHE_ASSETS = [
   "./",
   "./index.html",

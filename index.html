@@ -82,6 +82,9 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
       </button>
     </div>
+    <div id="mobileProgressWrap" class="mobile-progress-wrap" aria-hidden="true">
+      <div id="mobileProgressBar" class="mobile-progress-bar"></div>
+    </div>
   </header>
 
   <!-- Deck Principal (11 Láminas 100% Gemi + Sin Scroll en Móvil) -->
@@ -204,7 +207,12 @@
     <div id="stageActorCard" class="stage-actor-card glass-card">
       <div class="stage-top-bar">
         <div id="eppSpeechBubble" class="epp-speech-bubble">¡Hola! Tócame para animar esta lámina.</div>
-        <span id="eppStageTag" class="epp-stage-tag">✨ Toca a Gemi o un ícono</span>
+        <div class="stage-tag-row">
+          <span id="eppStageTag" class="epp-stage-tag">✨ Toca a Gemi o un ícono</span>
+          <button id="btnPlaySlide" type="button" class="stage-mini-btn play-pulse" title="Reproducir o pausar explicación animada">▶️ Animar</button>
+          <button id="btnAskGemi" type="button" class="stage-mini-btn" title="Preguntas rápidas y acciones de Gemi">💬 Dudas</button>
+          <button id="btnReactClap" type="button" class="stage-mini-btn icon-only" title="Enviar reacción" aria-label="Enviar reacción">👏</button>
+        </div>
       </div>
 
       <div id="stageSplit" class="stage-split">
@@ -333,10 +341,19 @@
               <input id="litersRange" type="range" min="1" max="20" step="1" value="5" aria-label="Litros de agua" />
               <span id="litersValue" class="liters-badge">5 L</span>
             </div>
+            <div class="calc-quick-liters" id="calcQuickLiters">
+              <button type="button" class="ql-chip" data-l="1">1 L</button>
+              <button type="button" class="ql-chip active" data-l="5">5 L</button>
+              <button type="button" class="ql-chip" data-l="10">10 L</button>
+              <button type="button" class="ql-chip" data-l="20">20 L</button>
+            </div>
           </div>
 
           <!-- Slide 9: Emergencias 3D -->
-          <div id="em3D" class="em-3d-canvas hidden" title="Simulación 3D del protocolo"></div>
+          <div id="em3DWrap" class="stage-em-box hidden">
+            <div id="em3D" class="em-3d-canvas" title="Arrastra para girar en 3D"></div>
+            <div class="mol-hint">👆 Gira en 3D</div>
+          </div>
 
           <!-- Slide 10: Quiz Compacto -->
           <div id="quizStageWrap" class="quiz-compact hidden">
@@ -404,6 +421,7 @@
   <footer class="bottom-nav">
     <button id="btnPrev" class="nav-btn" aria-label="Diapositiva anterior">← Anterior</button>
     <div id="dotsNav" class="dots-nav" aria-label="Navegación por diapositivas"></div>
+    <button id="btnMobileIndex" type="button" class="mobile-index-pill" aria-label="Abrir índice de diapositivas">1 / 11 ▾</button>
     <button id="btnNext" class="nav-btn primary" aria-label="Siguiente diapositiva">Siguiente →</button>
   </footer>
 

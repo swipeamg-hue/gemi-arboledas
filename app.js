@@ -3,6 +3,10 @@ window.__activeSlideIndex = 0;
 let soundEnabled = true;
 let audioCtx = null;
 
+function haptic(pattern = 16) {
+  try { if (navigator && navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+}
+
 function playTone(freq, dur = 0.08, type = 'sine', vol = 0.05) {
   if (!soundEnabled) return;
   try {
@@ -36,9 +40,10 @@ const welcomeCurtain = document.getElementById('welcomeCurtain');
 const btnStartPres = document.getElementById('btnStartPresentation');
 if (btnStartPres && welcomeCurtain) {
   btnStartPres.addEventListener('click', () => {
+    haptic(20);
     playTone(660, 0.09);
     if (window.__triggerWarp3D) window.__triggerWarp3D();
-    const done = () => { welcomeCurtain.classList.add('hidden'); updateBuddyForSlide(currentSlide); };
+    const done = () => { welcomeCurtain.classList.add('hidden'); startSlideTour(currentSlide); };
     if (typeof gsap !== 'undefined') gsap.to(welcomeCurtain, { opacity: 0, scale: 1.06, duration: 0.45, ease: 'power2.inOut', onComplete: done });
     else done();
   });
@@ -247,6 +252,7 @@ function setBubbleContent(el, text) {
   }).join('');
   el._kwNodes = Array.from(el.querySelectorAll('.kw'));
   el._kwRanges = ranges;
+  el.scrollTop = 0;
 }
 
 function highlightBubbleWord(wordIdx, progress = null) {
@@ -255,10 +261,17 @@ function highlightBubbleWord(wordIdx, progress = null) {
   const targetIdx = progress !== null
     ? Math.min(el._kwNodes.length - 1, Math.floor(Math.max(0, Math.min(0.999, progress)) * el._kwNodes.length))
     : Math.min(el._kwNodes.length - 1, wordIdx);
+  let activeNode = null;
   el._kwNodes.forEach((node, i) => {
     node.classList.toggle('spoken', i < targetIdx);
-    node.classList.toggle('reading', i === targetIdx);
+    const isReading = i === targetIdx;
+    node.classList.toggle('reading', isReading);
+    if (isReading) activeNode = node;
   });
+  if (activeNode && el.scrollHeight > el.clientHeight + 2) {
+    const desired = Math.max(0, activeNode.offsetTop - (el.clientHeight / 2) + (activeNode.offsetHeight / 2));
+    if (Math.abs(el.scrollTop - desired) > 6) el.scrollTop = desired;
+  }
 }
 
 function clearBubbleHighlight() {
@@ -529,11 +542,16 @@ const eppGemiSvg = document.getElementById('eppGemiSvg');
 const stageMolWrap = document.getElementById('stageMolWrap');
 const stageBioWrap = document.getElementById('stageBioWrap');
 const calcStageWrap = document.getElementById('calcStageWrap');
+const stageEmWrap = document.getElementById('em3DWrap');
 const em3DEl = document.getElementById('em3D');
 const quizStageWrap = document.getElementById('quizStageWrap');
 const closingQrWrap = document.getElementById('closingQrWrap');
 const closingDocsWrap = document.getElementById('closingDocsWrap');
 const simEco = document.getElementById('simEcoOutputs');
+const btnPlaySlide = document.getElementById('btnPlaySlide');
+const btnAskGemi = document.getElementById('btnAskGemi');
+const btnReactClap = document.getElementById('btnReactClap');
+let currentVisKey = null;
 
 const stageVisualCatalog = {
   // Slide 1: Portada
@@ -547,10 +565,10 @@ const stageVisualCatalog = {
   // Slide 2: Perfil
   perfil_conc: { tag: '🧪 Fórmula Clínica', icon: '🧪', title: 'Ácido Peracético 14–16%', pills: ['FDA / USDA (GRAS)'], particles: 'sporesClear' },
   perfil_stat: { tag: '🏆 Ensayo Certificado', counter: true, title: 'Reducción en 30 s', pills: ['E. coli ATCC 11229 · 1:75'], particles: 'sporesClear' },
-  micro_bacterias: { tag: '🦠 Bacterias', icon: '🦠', title: 'Gram+ y Gram-', pills: [{ text: 'NEUTRALIZADO 99.999%', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
-  micro_virus: { tag: '🧬 Virus', icon: '🧬', title: 'Envueltos y No Envueltos', pills: [{ text: 'AMPLIO ESPECTRO', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
-  micro_hongos: { tag: '🍄 Hongos', icon: '🍄', title: 'Hongos y Levaduras', pills: [{ text: 'ZONAS HÚMEDAS', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
-  micro_esporas: { tag: '🛡️ Esporas', icon: '🛡️', title: 'Nivel Alto', pills: [{ text: 'ESTERILIZANTE 1:75', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
+  micro_bacterias: { tag: '🦠 Bacterias', icon: '🦠', title: 'Gram+ y Gram-', pills: [{ text: 'NEUTRALIZADO 99.999%', cls: 'ok' }], zap: true, theme: 'theme-ok', particles: 'sporesClear' },
+  micro_virus: { tag: '🧬 Virus', icon: '🧬', title: 'Envueltos y No Envueltos', pills: [{ text: 'AMPLIO ESPECTRO', cls: 'ok' }], zap: true, theme: 'theme-ok', particles: 'sporesClear' },
+  micro_hongos: { tag: '🍄 Hongos', icon: '🍄', title: 'Hongos y Levaduras', pills: [{ text: 'ZONAS HÚMEDAS', cls: 'ok' }], zap: true, theme: 'theme-ok', particles: 'sporesClear' },
+  micro_esporas: { tag: '🛡️ Esporas', icon: '🛡️', title: 'Nivel Alto', pills: [{ text: 'ESTERILIZANTE 1:75', cls: 'ok' }], zap: true, theme: 'theme-ok', particles: 'sporesClear' },
   mito_olor: { tag: '👃 Sin Olor', icon: '✨', title: 'Cero Olor y Color', pills: [{ text: 'Confort del paciente', cls: 'ok' }], theme: 'theme-ok' },
   mito_fria: { tag: '❄️ Agua Fría', icon: '❄️', title: 'Eficaz hasta 4 °C', pills: [{ text: 'No requiere calentar', cls: 'ok' }], theme: 'theme-ok', particles: 'frost' },
   mito_espuma: { tag: '🫧 Cero Espuma', icon: '🫧', title: 'Fácil Aplicación', pills: [{ text: 'Cero residuos', cls: 'ok' }], theme: 'theme-ok', particles: 'freshAir' },
@@ -566,8 +584,8 @@ const stageVisualCatalog = {
   compat_hule: { tag: '✅ Hule y Plásticos', icon: '🩺', title: 'Hule, Goma y Plásticos', pills: [{ text: 'COMPATIBLE', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
   compat_cobre: { tag: '⛔ Precaución', icon: '🪙', title: 'Cobre — NO Aplicar', pills: [{ text: 'RIESGO DE DAÑO', cls: 'danger' }], theme: 'theme-danger' },
   compat_aluminio: { tag: '⛔ Precaución', icon: '⚙️', title: 'Aluminio y Metales Suaves', pills: [{ text: 'CORROSIVO', cls: 'danger' }], theme: 'theme-danger' },
-  compat_cloro: { tag: '☠️ REGLA DE ORO', icon: '☠️', title: '¡NUNCA CON CLORO!', pills: [{ text: 'LIBERA GAS TÓXICO', cls: 'danger' }], theme: 'theme-danger', particles: 'toxicGas', tone: true },
-  compat_gas: { tag: '🚫 Separación Total', icon: '🧪', title: 'Recipientes Separados', pills: [{ text: 'CERO CLORO', cls: 'danger' }], theme: 'theme-danger', particles: 'toxicGas' },
+  compat_cloro: { tag: '☠️ REGLA DE ORO', icon: '☠️', title: '¡NUNCA CON CLORO!', pills: [{ text: 'LIBERA GAS TÓXICO', cls: 'danger' }], hazardBtn: true, theme: 'theme-danger', particles: 'toxicGas', tone: true },
+  compat_gas: { tag: '🚫 Separación Total', icon: '🧪', title: 'Recipientes Separados', pills: [{ text: 'CERO CLORO', cls: 'danger' }], hazardBtn: true, theme: 'theme-danger', particles: 'toxicGas' },
 
   // Slide 5: Calculadora Compacta (Solo 1:300 y 1:75)
   calc_panel: { tag: '🧮 Calculadora 1:300 · 1:75', widget: 'calc' },
@@ -675,13 +693,14 @@ const stageDefaultTags = {
 };
 
 function hideAllVisualWidgets() {
-  [stageMolWrap, stageBioWrap, calcStageWrap, em3DEl, quizStageWrap, closingQrWrap, closingDocsWrap].forEach(w => {
+  [stageMolWrap, stageBioWrap, calcStageWrap, stageEmWrap, quizStageWrap, closingQrWrap, closingDocsWrap].forEach(w => {
     if (w) w.classList.add('hidden');
   });
   if (simEco) simEco.classList.remove('show');
 }
 
 function clearStageVisual() {
+  currentVisKey = null;
   if (stageVisualPane) {
     stageVisualPane.classList.add('hidden');
     stageVisualPane.classList.remove('theme-danger', 'theme-ok');
@@ -705,11 +724,21 @@ function animatePopCounter(el) {
   requestAnimationFrame(step);
 }
 
+function triggerChlorineHazardAlert() {
+  haptic([40, 30, 65]);
+  playTone(190, 0.35, 'sawtooth', 0.07);
+  setTimeout(() => playTone(145, 0.35, 'sawtooth', 0.07), 180);
+  playBuddyGesture('alertShake');
+  const hz = document.getElementById('hazardOverlay');
+  if (hz) hz.classList.remove('hidden');
+}
+
 function showStageVisual(visKey) {
   if (!visKey || !stageVisualCatalog[visKey]) {
     clearStageVisual();
     return;
   }
+  currentVisKey = visKey;
   const cfg = stageVisualCatalog[visKey];
   if (eppStageTag && cfg.tag) eppStageTag.textContent = cfg.tag;
 
@@ -728,8 +757,9 @@ function showStageVisual(visKey) {
       if (cfg.bioPhase === 3 && simEco) simEco.classList.add('show');
     }
   } else if (cfg.widget === 'calc' && calcStageWrap) calcStageWrap.classList.remove('hidden');
-  else if (cfg.widget === 'em' && em3DEl) {
-    em3DEl.classList.remove('hidden');
+  else if (cfg.widget === 'em' && stageEmWrap) {
+    stageEmWrap.classList.remove('hidden');
+    if (em3DEl) em3DEl.classList.remove('hidden');
     if (window.__setEmergency3D) window.__setEmergency3D(cfg.em);
   } else if (cfg.widget === 'quiz' && quizStageWrap) quizStageWrap.classList.remove('hidden');
   else if (cfg.widget === 'qr' && closingQrWrap) closingQrWrap.classList.remove('hidden');
@@ -737,22 +767,28 @@ function showStageVisual(visKey) {
 
   let bodyHtml = '';
   if (cfg.counter) bodyHtml += `<div class="pop-big-stat" id="stageCounterVal">92.000%</div>`;
-  else if (cfg.radial) bodyHtml += `<div class="anim-radial-ring">${cfg.radial}</div>`;
+  else if (cfg.radial) bodyHtml += `<div class="anim-radial-ring" id="demoRadialRing" title="Toca para simular">${cfg.radial}</div>`;
   else if (cfg.thermo) {
     const pct = Math.min(100, Math.round((cfg.thermo.temp / 45) * 100));
     const bg = cfg.thermo.danger ? '#EF4444' : '#2DD4BF';
-    bodyHtml += `<div class="anim-thermo-track"><div class="anim-thermo-fill" style="width:${pct}%;background:${bg};"></div></div>`;
+    bodyHtml += `<div class="anim-thermo-track"><div class="anim-thermo-fill" id="liveThermoFill" style="width:${pct}%;background:${bg};"></div></div>`;
   } else if (cfg.img) bodyHtml += `<img src="${cfg.img}" alt="Hospital Arboledas" class="pop-media-img" />`;
   else if (cfg.productImg) bodyHtml += `<img src="${cfg.productImg}" alt="SWIPE Peracetic 20L" class="pop-media-product" />`;
-  else if (cfg.icon) bodyHtml += `<div class="pop-icon">${cfg.icon}</div>`;
+  else if (cfg.icon) bodyHtml += `<div class="pop-icon" id="stagePopIcon">${cfg.icon}</div>`;
 
-  if (cfg.title) bodyHtml += `<div class="pop-title">${cfg.title}</div>`;
+  if (cfg.title) bodyHtml += `<div class="pop-title" id="stagePopTitle">${cfg.title}</div>`;
   if (cfg.pills && cfg.pills.length) {
-    bodyHtml += `<div class="pop-chip-row">` + cfg.pills.map(p => {
+    bodyHtml += `<div class="pop-chip-row" id="stagePopPills">` + cfg.pills.map(p => {
       const text = typeof p === 'string' ? p : p.text;
       const cls = typeof p === 'object' && p.cls ? p.cls : '';
       return `<span class="pop-pill ${cls}">${text}</span>`;
     }).join('') + `</div>`;
+  }
+  if (cfg.zap) bodyHtml += `<button type="button" class="pop-action-btn" id="btnZapMicrobe">⚡ Neutralizar patógeno</button>`;
+  if (cfg.hazardBtn) bodyHtml += `<button type="button" class="pop-action-btn danger" id="btnTrigHazard">🚨 Simular Alerta Química</button>`;
+  if (cfg.radial) bodyHtml += `<button type="button" class="pop-action-btn" id="btnDemoTimer">⏱️ Simular 5 min</button>`;
+  if (cfg.thermo) {
+    bodyHtml += `<div class="thermo-slider-wrap"><span>15°C</span><input type="range" id="liveThermoRange" min="15" max="42" value="${cfg.thermo.temp}" aria-label="Temperatura de almacén" /><span>42°C</span></div>`;
   }
   if (cfg.sub) bodyHtml += `<p class="pop-sub">${cfg.sub}</p>`;
 
@@ -761,6 +797,75 @@ function showStageVisual(visKey) {
     stageAnimContent.classList.remove('hidden');
     const counterEl = document.getElementById('stageCounterVal');
     if (counterEl) animatePopCounter(counterEl);
+
+    const btnZap = document.getElementById('btnZapMicrobe');
+    if (btnZap) {
+      btnZap.addEventListener('click', () => {
+        haptic(24);
+        playTone(840, 0.12);
+        const ic = document.getElementById('stagePopIcon');
+        if (ic) ic.classList.add('zapped');
+        btnZap.textContent = '✅ ¡99.999% Neutralizado!';
+        btnZap.classList.add('done');
+        if (window.__playStageParticles) window.__playStageParticles('sporesClear');
+        playBuddyGesture('cheer');
+      });
+    }
+
+    const btnHz = document.getElementById('btnTrigHazard');
+    if (btnHz) btnHz.addEventListener('click', triggerChlorineHazardAlert);
+
+    const btnTimerDemo = document.getElementById('btnDemoTimer');
+    const ringEl = document.getElementById('demoRadialRing');
+    const runRingDemo = () => {
+      if (!ringEl || ringEl.dataset.running === '1') return;
+      ringEl.dataset.running = '1';
+      haptic(18);
+      let m = 1;
+      ringEl.textContent = '1:00m';
+      if (btnTimerDemo) btnTimerDemo.textContent = '⏳ Actuando...';
+      const iv = setInterval(() => {
+        if (!document.body.contains(ringEl)) { clearInterval(iv); return; }
+        m++;
+        if (m <= 5) {
+          ringEl.textContent = `${m}:00m`;
+          playTone(540 + m * 55, 0.05);
+        } else {
+          clearInterval(iv);
+          ringEl.textContent = '✅ Listo';
+          ringEl.dataset.running = '0';
+          if (btnTimerDemo) { btnTimerDemo.textContent = '✅ ¡Desinfección Lista!'; btnTimerDemo.classList.add('done'); }
+          spawnConfetti(22);
+          playBuddyGesture('cheer');
+        }
+      }, 360);
+    };
+    if (btnTimerDemo) btnTimerDemo.addEventListener('click', runRingDemo);
+    if (ringEl) ringEl.addEventListener('click', runRingDemo);
+
+    const thermoInput = document.getElementById('liveThermoRange');
+    if (thermoInput) {
+      thermoInput.addEventListener('input', () => {
+        const t = parseInt(thermoInput.value, 10);
+        const danger = t > 35;
+        const fill = document.getElementById('liveThermoFill');
+        const titleEl = document.getElementById('stagePopTitle');
+        const pillsEl = document.getElementById('stagePopPills');
+        if (fill) {
+          fill.style.width = `${Math.min(100, Math.round((t / 45) * 100))}%`;
+          fill.style.background = danger ? '#EF4444' : '#2DD4BF';
+        }
+        stageVisualPane.classList.toggle('theme-danger', danger);
+        stageVisualPane.classList.toggle('theme-ok', !danger);
+        if (titleEl) titleEl.textContent = danger ? `${t} °C · ¡Alerta Calor!` : `${t} °C · Zona Segura`;
+        if (pillsEl) {
+          pillsEl.innerHTML = danger
+            ? `<span class="pop-pill danger">REUBICAR (&gt; 35 °C)</span>`
+            : `<span class="pop-pill ok">ÓPTIMO (≤ 35 °C)</span>`;
+        }
+        if (!autoMode && !slideTourRunning) setBuddyMood(danger ? 'alert' : 'happyOpen', null, false);
+      });
+    }
   } else {
     stageAnimContent.innerHTML = '';
     stageAnimContent.classList.add('hidden');
@@ -798,19 +903,38 @@ function resetEppGear() {
   if (eppStageTag) eppStageTag.textContent = '🛡️ Preparando EPP...';
 }
 
-function equipGemiEpp(zoneKey, keepPrevious = false) {
+function equipGemiEpp(zoneKey, keepPrevious = false, toggleMode = false) {
   ['ojos', 'guantes', 'bata', 'mascarilla'].forEach(k => {
     const layer = document.getElementById(`eppGear-${k}`);
     if (!layer) return;
-    if (k === zoneKey) layer.classList.remove('hidden');
-    else if (!keepPrevious) layer.classList.add('hidden');
+    if (k === zoneKey) {
+      if (toggleMode) layer.classList.toggle('hidden');
+      else layer.classList.remove('hidden');
+    } else if (!keepPrevious) layer.classList.add('hidden');
   });
   document.querySelectorAll('.eq-pill').forEach(p => {
-    if (p.dataset.eq === zoneKey) p.classList.add('equipped');
-    else if (!keepPrevious) p.classList.remove('equipped');
+    const layer = document.getElementById(`eppGear-${p.dataset.eq}`);
+    p.classList.toggle('equipped', !!(layer && !layer.classList.contains('hidden')));
   });
-  if (eppStageTag && eppStageLabels[zoneKey]) eppStageTag.textContent = eppStageLabels[zoneKey];
+  const count = document.querySelectorAll('#eppEquippedBadges .eq-pill.equipped').length;
+  if (eppStageTag) {
+    if (count === 4 && toggleMode) {
+      eppStageTag.textContent = '🛡️ ¡Gemi 100% Protegido! (4/4)';
+      spawnConfetti(32);
+      playBuddyGesture('cheer');
+      return;
+    }
+    eppStageTag.textContent = toggleMode ? `${eppStageLabels[zoneKey] || ''} · (${count}/4)` : (eppStageLabels[zoneKey] || '');
+  }
   playBuddyGesture('wave');
+}
+
+function syncPlayBtnState() {
+  if (!btnPlaySlide) return;
+  const running = slideTourRunning || autoMode;
+  btnPlaySlide.textContent = running ? '⏹️ Detener' : '▶️ Animar';
+  btnPlaySlide.classList.toggle('active', running);
+  btnPlaySlide.classList.toggle('play-pulse', !running);
 }
 
 function mountStageForSlide(idx) {
@@ -823,7 +947,8 @@ function mountStageForSlide(idx) {
   if (eppGradCap) eppGradCap.classList.toggle('hidden', idx !== 5);
   if (eppEquippedBadges) eppEquippedBadges.classList.toggle('hidden', idx !== 6);
   if (idx !== 6) resetEppGear();
-  if (eppStageTag) eppStageTag.textContent = stageDefaultTags[idx] || '✨ Toca a Gemi';
+  else if (eppStageTag) eppStageTag.textContent = '🛡️ Equipa a Gemi (0/4)';
+  if (idx !== 6 && eppStageTag) eppStageTag.textContent = stageDefaultTags[idx] || '✨ Toca a Gemi';
 
   if (stageStepDots) {
     const pips = stagePipsBySlide[idx] || [];
@@ -832,9 +957,16 @@ function mountStageForSlide(idx) {
     ).join('');
     stageStepDots.querySelectorAll('.stage-pip').forEach(btn => {
       btn.addEventListener('click', () => {
+        haptic(14);
         stopSlideTour();
         const visKey = btn.dataset.vis;
         const persist = btn.dataset.persist === '1';
+        if (currentVisKey === visKey && !persist) {
+          stopActiveVoice();
+          clearStageVisual();
+          if (eppStageTag) eppStageTag.textContent = stageDefaultTags[idx] || '✨ Toca a Gemi';
+          return;
+        }
         const match = (autoScripts[idx] || []).find(c => c.vis === visKey);
         const speech = match ? match.s : '';
         const mood = match && match.mood ? match.mood : 'normal';
@@ -842,7 +974,7 @@ function mountStageForSlide(idx) {
         setBuddyMood(mood, speech || stageDefaultTags[idx], false);
         showStageVisual(visKey);
         playBuddyGesture(mood === 'alert' ? 'alertShake' : 'point');
-        if (speech) speakWithLipSync(speech, () => { if (!persist && !autoMode && !slideTourRunning) clearStageVisual(); });
+        if (speech) speakWithLipSync(speech);
       });
     });
   }
@@ -850,9 +982,10 @@ function mountStageForSlide(idx) {
 
 document.querySelectorAll('.eq-pill').forEach(pill => {
   pill.addEventListener('click', () => {
+    haptic(18);
     stopSlideTour();
     const zone = pill.dataset.eq;
-    equipGemiEpp(zone, false);
+    equipGemiEpp(zone, true, true);
     const speech = eppSpeeches[zone] || '';
     setBuddyMood('normal', speech, false);
     currentReadingEl = eppSpeechBubble;
@@ -862,24 +995,51 @@ document.querySelectorAll('.eq-pill').forEach(pill => {
   });
 });
 
+window.__onBioTap = () => {
+  haptic(16);
+  playTone(740, 0.07);
+  if (window.__playStageParticles) window.__playStageParticles('sporesClear');
+};
+
 const buddyQuickMenu = document.getElementById('buddyQuickMenu');
+const toggleSlideTourAction = () => {
+  haptic(18);
+  if (autoMode) { stopAutoPresentation(); syncPlayBtnState(); return; }
+  if (slideTourRunning) {
+    stopSlideTour();
+    setBuddyMood('normal', buddyLines[currentSlide] || 'Toca un ícono o a Gemi para continuar.', false);
+  } else {
+    startSlideTour(currentSlide);
+  }
+};
 if (eppGemiSvg) {
-  eppGemiSvg.addEventListener('click', () => {
-    if (autoMode) return;
-    if (slideTourRunning) {
-      stopSlideTour();
-      clearStageVisual();
-      setBuddyMood('normal', buddyLines[currentSlide] || 'Toca a Gemi para continuar.', false);
-    } else {
-      startSlideTour(currentSlide);
-    }
-  });
+  eppGemiSvg.addEventListener('click', toggleSlideTourAction);
   const openBqm = (e) => { e.preventDefault(); if (buddyQuickMenu) buddyQuickMenu.classList.toggle('hidden'); };
   eppGemiSvg.addEventListener('dblclick', openBqm);
   eppGemiSvg.addEventListener('contextmenu', openBqm);
 }
+if (btnPlaySlide) btnPlaySlide.addEventListener('click', toggleSlideTourAction);
+if (btnAskGemi && buddyQuickMenu) {
+  btnAskGemi.addEventListener('click', (e) => {
+    e.stopPropagation();
+    haptic(14);
+    buddyQuickMenu.classList.toggle('hidden');
+  });
+}
+let reactCycle = 0;
+if (btnReactClap) {
+  const emojis = ['👏', '💚', '🛡️', '🎉'];
+  btnReactClap.addEventListener('click', () => {
+    haptic(20);
+    const em = emojis[reactCycle++ % emojis.length];
+    spawnReaction(em);
+    btnReactClap.textContent = em;
+    playBuddyGesture('cheer');
+  });
+}
 
 // ===== 2E. EJECUCIÓN DE GUIONES Y QUIZ =====
+const tourEndVisual = { 0: 'portada_mol', 2: 'sim_phase3', 4: 'calc_panel', 7: 'store_ok', 8: 'em_derrame', 9: 'quiz_panel', 10: 'close_qr' };
 async function runSlideScript(idx, alive) {
   const chunks = autoScripts[idx] || [{ s: buddyLines[idx] }];
   for (let c = 0; c < chunks.length; c++) {
@@ -896,7 +1056,8 @@ async function runSlideScript(idx, alive) {
     if (!alive()) return;
     await sleepAuto(ch.pause || 350);
   }
-  if (idx !== 6 && idx !== 4 && idx !== 9 && idx !== 10) clearStageVisual();
+  if (tourEndVisual[idx]) showStageVisual(tourEndVisual[idx]);
+  else if (idx !== 6) clearStageVisual();
 }
 
 function stopSlideTour() {
@@ -904,12 +1065,14 @@ function stopSlideTour() {
   slideTourGen++;
   clearTimeout(autoStepTimer);
   stopActiveVoice();
+  syncPlayBtnState();
 }
 
 async function startSlideTour(idx) {
   stopAutoPresentation();
   stopSlideTour();
   slideTourRunning = true;
+  syncPlayBtnState();
   const myGen = ++slideTourGen;
   const alive = () => slideTourRunning && myGen === slideTourGen && currentSlide === idx;
   await runSlideScript(idx, alive);
@@ -968,11 +1131,13 @@ function stopAutoPresentation() {
   clearTimeout(autoStepTimer);
   if (btnAutoPlay) { btnAutoPlay.classList.remove('active'); btnAutoPlay.innerHTML = '<span>🤖 Auto</span>'; }
   stopActiveVoice();
+  syncPlayBtnState();
 }
 
 function startAutoPresentation() {
   autoMode = true;
-  if (btnAutoPlay) { btnAutoPlay.classList.add('active'); btnAutoPlay.innerHTML = '<span>⏸️ Pausar Auto</span>'; }
+  if (btnAutoPlay) { btnAutoPlay.classList.add('active'); btnAutoPlay.innerHTML = '<span>⏸️ Pausa</span>'; }
+  syncPlayBtnState();
   runAutoFrom(currentSlide);
 }
 
@@ -988,7 +1153,9 @@ const slides = Array.from(document.querySelectorAll('.slide'));
 let currentSlide = 0;
 
 const progressBar = document.getElementById('progressBar');
+const mobileProgressBar = document.getElementById('mobileProgressBar');
 const slideCounter = document.getElementById('slideCounter');
+const btnMobileIndex = document.getElementById('btnMobileIndex');
 const dotsNav = document.getElementById('dotsNav');
 const btnPrev = document.getElementById('btnPrev');
 const btnNext = document.getElementById('btnNext');
@@ -1069,8 +1236,11 @@ function openSlide(index) {
   if (prev === next) next.classList.add('active');
   else runFuturisticTransition(prev, next);
 
-  progressBar.style.width = `${((currentSlide + 1) / slides.length) * 100}%`;
+  const pctStr = `${((currentSlide + 1) / slides.length) * 100}%`;
+  progressBar.style.width = pctStr;
+  if (mobileProgressBar) mobileProgressBar.style.width = pctStr;
   slideCounter.textContent = `${currentSlide + 1} / ${slides.length}`;
+  if (btnMobileIndex) btnMobileIndex.textContent = `${currentSlide + 1} / ${slides.length} ▾`;
   btnPrev.disabled = currentSlide === 0;
   btnNext.disabled = currentSlide === slides.length - 1;
 
@@ -1079,9 +1249,15 @@ function openSlide(index) {
 
   notesBody.textContent = slides[currentSlide].dataset.notes || '';
   notesTime.textContent = `Tiempo sugerido: ${slides[currentSlide].dataset.time || ''}`;
+  if (buddyQuickMenu) buddyQuickMenu.classList.add('hidden');
 
   stopSlideTour();
   mountStageForSlide(currentSlide);
+  if (!autoMode) {
+    if (currentSlide === 4) showStageVisual('calc_panel');
+    else if (currentSlide === 9) showStageVisual('quiz_panel');
+    else if (currentSlide === 10) showStageVisual('close_qr');
+  }
   if (window.__triggerWarp3D) window.__triggerWarp3D();
   updateBuddyForSlide(currentSlide);
 
@@ -1090,13 +1266,23 @@ function openSlide(index) {
   playTone(520, 0.05, 'sine', 0.03);
 }
 
-// Swipe táctil izquierda/derecha en celular
-let touchStartX = 0;
-document.getElementById('deck').addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+// Swipe táctil izquierda/derecha en celular (aislado de escenas 3D y controles deslizantes)
+let touchStartX = 0, touchStartY = 0, touchIgnoreSwipe = false;
+document.getElementById('deck').addEventListener('touchstart', (e) => {
+  const t = e.target;
+  touchIgnoreSwipe = !!(t && t.closest && t.closest('#molecule3D, #biocide3D, #beaker3D, #em3D, input, .calc-slider-mini, .thermo-slider-wrap'));
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
 document.getElementById('deck').addEventListener('touchend', (e) => {
-  if (e.target && e.target.tagName === 'INPUT') return;
-  const diff = e.changedTouches[0].screenX - touchStartX;
-  if (Math.abs(diff) > 55) { stopAutoPresentation(); diff < 0 ? nextSlide() : prevSlide(); }
+  if (touchIgnoreSwipe) return;
+  const dx = e.changedTouches[0].screenX - touchStartX;
+  const dy = e.changedTouches[0].screenY - touchStartY;
+  if (Math.abs(dx) > 58 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+    haptic(14);
+    stopAutoPresentation();
+    dx < 0 ? nextSlide() : prevSlide();
+  }
 }, { passive: true });
 
 function nextSlide() { openSlide(currentSlide + 1); }
@@ -1127,7 +1313,9 @@ function toggleNotes() { notesDrawer.classList.toggle('hidden'); btnNotes.classL
 btnNotes.addEventListener('click', toggleNotes);
 document.getElementById('btnCloseNotes').addEventListener('click', toggleNotes);
 document.getElementById('btnMenu').addEventListener('click', () => menuModal.classList.toggle('hidden'));
+if (btnMobileIndex) btnMobileIndex.addEventListener('click', () => { haptic(14); menuModal.classList.toggle('hidden'); });
 document.getElementById('btnCloseMenu').addEventListener('click', () => menuModal.classList.add('hidden'));
+menuModal.addEventListener('click', (e) => { if (e.target === menuModal) menuModal.classList.add('hidden'); });
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
@@ -1184,6 +1372,7 @@ function updateCalc() {
   resSub.textContent = `en ${liters} ${liters === 1 ? 'litro' : 'litros'} de agua`;
 
   if (window.__setBeakerLevel3D) window.__setBeakerLevel3D(liters / 20);
+  document.querySelectorAll('.ql-chip').forEach(ch => ch.classList.toggle('active', parseInt(ch.dataset.l, 10) === liters));
   if (typeof gsap !== 'undefined') {
     const obj = { val: currentDisplayedMl };
     gsap.to(obj, { val: targetMl, duration: 0.3, onUpdate: () => { resAmount.textContent = `${obj.val.toFixed(1)} ml`; }, onComplete: () => { currentDisplayedMl = targetMl; } });
@@ -1206,6 +1395,13 @@ document.querySelectorAll('.task-btn').forEach(btn => {
   });
 });
 if (litersRange) litersRange.addEventListener('input', updateCalc);
+document.querySelectorAll('.ql-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    haptic(14);
+    if (litersRange) { litersRange.value = chip.dataset.l; updateCalc(); }
+    playTone(620, 0.05);
+  });
+});
 
 // ===== 6. REACCIONES Y CONFETI =====
 function spawnReaction(emoji) {
@@ -1266,15 +1462,16 @@ function renderQuiz() {
   btnQuizRestart.classList.add('hidden');
   quizOptions.innerHTML = '';
 
+  const optLetters = ['A', 'B', 'C', 'D'];
   item.options.forEach((opt, idx) => {
     const btn = document.createElement('button');
     btn.className = 'quiz-opt';
-    btn.textContent = opt;
+    btn.textContent = `${optLetters[idx]}. ${opt}`;
     btn.addEventListener('click', () => {
       const allBtns = Array.from(quizOptions.children);
       allBtns.forEach(b => b.disabled = true);
-      if (idx === item.correct) { btn.classList.add('correct'); qScore++; quizScore.textContent = `Aciertos: ${qScore}`; playTone(780, 0.14); spawnConfetti(28); setBuddyMood('happyOpen', '¡Excelente respuesta! 🎉'); playBuddyGesture('cheer'); }
-      else { btn.classList.add('wrong'); allBtns[item.correct].classList.add('correct'); playTone(260, 0.16, 'triangle'); setBuddyMood('normal', '¡Casi! Revisa la explicación.'); }
+      if (idx === item.correct) { haptic(25); btn.classList.add('correct'); qScore++; quizScore.textContent = `Aciertos: ${qScore}`; playTone(780, 0.14); spawnConfetti(28); setBuddyMood('happyOpen', '¡Excelente respuesta! 🎉'); playBuddyGesture('cheer'); }
+      else { haptic([30, 40, 30]); btn.classList.add('wrong'); allBtns[item.correct].classList.add('correct'); playTone(260, 0.16, 'triangle'); setBuddyMood('normal', '¡Casi! Revisa la explicación.'); }
       quizFeedback.textContent = item.feedback;
       quizFeedback.classList.remove('hidden');
       if (qIndex < quizData.length - 1) btnQuizNext.classList.remove('hidden');
@@ -1304,8 +1501,18 @@ if (btnQuizSpeak) {
 
 // Pocket Card Modal & QR
 const pocketModal = document.getElementById('pocketModal');
-document.getElementById('btnOpenPocket').addEventListener('click', () => pocketModal.classList.remove('hidden'));
+document.getElementById('btnOpenPocket').addEventListener('click', () => { haptic(16); pocketModal.classList.remove('hidden'); });
 document.getElementById('btnClosePocket').addEventListener('click', () => pocketModal.classList.add('hidden'));
+pocketModal.addEventListener('click', (e) => { if (e.target === pocketModal) pocketModal.classList.add('hidden'); });
+const hazardOverlayEl = document.getElementById('hazardOverlay');
+if (hazardOverlayEl) hazardOverlayEl.addEventListener('click', (e) => { if (e.target === hazardOverlayEl) hazardOverlayEl.classList.add('hidden'); });
+document.addEventListener('click', (e) => {
+  if (buddyQuickMenu && !buddyQuickMenu.classList.contains('hidden')) {
+    if (!buddyQuickMenu.contains(e.target) && e.target !== btnAskGemi && e.target !== eppGemiSvg) {
+      buddyQuickMenu.classList.add('hidden');
+    }
+  }
+});
 
 const qrContainer = document.getElementById('qrContainer');
 if (qrContainer && typeof QRCode !== 'undefined') {
@@ -1421,6 +1628,15 @@ renderQuiz();
     return;
   }
 
+  const hadSwController = !!navigator.serviceWorker.controller;
+  let swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadSwController && !swRefreshing) {
+      swRefreshing = true;
+      window.location.reload();
+    }
+  });
+
   navigator.serviceWorker.addEventListener('message', (ev) => {
     const d = ev.data || {};
     if (d.type === 'SW_PROGRESS') {
@@ -1435,6 +1651,7 @@ renderQuiz();
   window.addEventListener('online', () => { if (pills.some(p => p.classList.contains('ready'))) setOfflineText('✅ Lista para usar sin internet (100% guardada)', true); });
 
   navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
+    reg.update().catch(() => {});
     if (reg.active && !reg.installing && !reg.waiting) {
       setOfflineText(navigator.onLine ? '✅ Lista para usar sin internet (100% guardada)' : '📴 Modo sin internet activo (100% operativa)', true);
     }
