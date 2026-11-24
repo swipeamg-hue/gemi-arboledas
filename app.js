@@ -1312,21 +1312,25 @@ function teleportBuddyTo(x, y) {
 
 // Calcula un lugar junto al elemento (derecha, izquierda o arriba/abajo) sin salirse de la pantalla
 function placeBuddyNear(rect, scaleMul = 1) {
-  const mobile = window.innerWidth < 600;
-  const s = (mobile ? 0.8 : 1.08) * scaleMul;
+  const mobile = window.innerWidth < 700;
+  const s = mobile ? 0.76 : 1.08 * scaleMul;
   buddyScale = s;
   const w = buddyEl.offsetWidth || 90;
   const h = buddyEl.offsetHeight || 130;
   const bw = w * s;
   const bh = h * s;
-  const topLimit = 64;
-  const bottomLimit = Math.max(topLimit, window.innerHeight - 62 - bh);
+  const topLimit = 58;
+  const bottomLimit = Math.max(topLimit, window.innerHeight - 56 - bh);
+  if (mobile) {
+    // En celular estacionar abajo a la izquierda para no tapar tarjetas ni botones
+    return { x: 8 - (w - bw) / 2, y: bottomLimit - (h - bh) / 2 };
+  }
   let vx = rect.right + 12;
   let vy = rect.top + Math.min(rect.height / 2, 90) - bh / 2;
   if (vx + bw > window.innerWidth - 8) vx = rect.left - bw - 12;
   if (vx < 8) {
     vx = Math.min(window.innerWidth - bw - 8, Math.max(8, rect.left + rect.width / 2 - bw / 2));
-    vy = rect.bottom + bh + 8 < window.innerHeight - 60 ? rect.bottom + 8 : rect.top - bh - 8;
+    vy = rect.bottom + bh + 8 < window.innerHeight - 54 ? rect.bottom + 8 : rect.top - bh - 8;
   }
   vy = Math.max(topLimit, Math.min(bottomLimit, vy));
   // compensar que el escalado es desde el centro
