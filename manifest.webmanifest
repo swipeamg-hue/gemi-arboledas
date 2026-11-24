@@ -1,0 +1,19 @@
+{
+  "name": "SWIPE® Peracetic — Inducción Hospital Arboledas",
+  "short_name": "SWIPE Peracetic",
+  "description": "Presentación interactiva offline con Gemi para personal de enfermería de Hospital Arboledas.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#040F1D",
+  "theme_color": "#040F1D",
+  "icons": [
+    {
+      "src": "assets/img/logo-hospital-arboledas.png",
+      "sizes": "554x554",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

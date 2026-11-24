@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SWIPE® Peracetic — Inducción Interactiva | Hospital Arboledas</title>
   <link rel="icon" href="assets/img/logo-hospital-arboledas.png" type="image/png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="apple-touch-icon" href="assets/img/logo-hospital-arboledas.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#040F1D" />
+  <link rel="stylesheet" href="assets/fonts/fonts.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -28,6 +29,10 @@
       <div class="curtain-actions">
         <button id="btnStartPresentation" class="btn-neon big-start">Iniciar Presentación →</button>
         <button id="btnStartAuto" class="btn-glass big-start">🤖 Presentación Automática con Gemi</button>
+      </div>
+      <div class="offline-row">
+        <span id="offlineStatusCurtain" class="offline-pill">⏳ Preparando copia sin internet...</span>
+        <button id="btnInstallPwa" class="btn-glass small hidden">📲 Instalar App</button>
       </div>
     </div>
   </div>
@@ -615,6 +620,9 @@
         <button id="btnCloseMenu" class="close-x" aria-label="Cerrar menú">✕</button>
       </div>
       <div id="menuList" class="menu-list"></div>
+      <div class="offline-row menu-offline-foot">
+        <span id="offlineStatusMenu" class="offline-pill">⏳ Verificando caché sin internet...</span>
+      </div>
     </div>
   </div>
 

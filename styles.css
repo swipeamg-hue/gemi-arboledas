@@ -737,3 +737,18 @@ body.light-mode .welcome-curtain { background: radial-gradient(circle at center,
   #pocketModal { position: static; background: none; padding: 0; }
   .no-print { display: none !important; }
 }
+
+/* Estado Offline / PWA dentro de Telón e Índice */
+.offline-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 4px;
+}
+.menu-offline-foot { margin-top: 14px; justify-content: flex-start; }
+.offline-pill {
+  font-size: 0.76rem; font-weight: 700; padding: 5px 12px; border-radius: 999px;
+  background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--sky);
+}
+.offline-pill.ready {
+  background: rgba(16, 185, 129, 0.16); border-color: rgba(52, 211, 153, 0.45); color: #6EE7B7;
+}
+body.light-mode .offline-pill.ready { color: #047857; }

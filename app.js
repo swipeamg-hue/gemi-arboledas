@@ -1778,3 +1778,80 @@ const startIdx = parseInt(urlParams.get('slide'), 10);
 openSlide(!isNaN(startIdx) && startIdx >= 0 && startIdx < slides.length ? startIdx : 0);
 updateCalc();
 renderQuiz();
+
+// ===== 12. SOPORTE OFFLINE PWA (SERVICE WORKER + INSTALACIÓN SIN INTERNET) =====
+(function setupOfflinePwa() {
+  const pills = [
+    document.getElementById('offlineStatusCurtain'),
+    document.getElementById('offlineStatusMenu')
+  ].filter(Boolean);
+  const btnInstall = document.getElementById('btnInstallPwa');
+  let deferredInstall = null;
+
+  function setOfflineText(txt, isReady = false) {
+    pills.forEach(p => {
+      p.textContent = txt;
+      p.classList.toggle('ready', isReady);
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstall = e;
+    if (btnInstall) btnInstall.classList.remove('hidden');
+  });
+
+  if (btnInstall) {
+    btnInstall.addEventListener('click', async () => {
+      if (!deferredInstall) return;
+      deferredInstall.prompt();
+      await deferredInstall.userChoice.catch(() => {});
+      deferredInstall = null;
+      btnInstall.classList.add('hidden');
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    if (btnInstall) btnInstall.classList.add('hidden');
+  });
+
+  if (!('serviceWorker' in navigator) || (!window.location.protocol.startsWith('http'))) {
+    setOfflineText('📁 Modo archivo local activo', true);
+    return;
+  }
+
+  navigator.serviceWorker.addEventListener('message', (ev) => {
+    const d = ev.data || {};
+    if (d.type === 'SW_PROGRESS') {
+      const pct = Math.round((d.done / Math.max(1, d.total)) * 100);
+      setOfflineText(`⏳ Guardando modo sin internet (${pct}%)...`, false);
+    } else if (d.type === 'SW_READY') {
+      setOfflineText(
+        navigator.onLine
+          ? '✅ Lista para usar sin internet (100% guardada)'
+          : '📴 Modo sin internet activo (100% operativa)',
+        true
+      );
+    }
+  });
+
+  window.addEventListener('offline', () => setOfflineText('📴 Modo sin internet activo (caché local)', true));
+  window.addEventListener('online', () => {
+    if (pills.some(p => p.classList.contains('ready'))) {
+      setOfflineText('✅ Lista para usar sin internet (100% guardada)', true);
+    }
+  });
+
+  navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
+    if (reg.active && !reg.installing && !reg.waiting) {
+      setOfflineText(
+        navigator.onLine
+          ? '✅ Lista para usar sin internet (100% guardada)'
+          : '📴 Modo sin internet activo (100% operativa)',
+        true
+      );
+    }
+  }).catch(() => {
+    setOfflineText('ℹ️ Caché offline disponible solo sobre HTTPS/localhost', false);
+  });
+})();
