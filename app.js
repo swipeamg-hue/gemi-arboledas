@@ -27,6 +27,7 @@ if (btnSound) {
     soundEnabled = !soundEnabled;
     btnSound.classList.toggle('active', soundEnabled);
     if (soundEnabled) playTone(620, 0.07);
+    else if (typeof stopActiveVoice === 'function') stopActiveVoice();
   });
 }
 
@@ -117,6 +118,7 @@ const activateEpp = (zone) => {
   equipGemiEpp(zone, true);
   const card = eppCards.find(x => x.dataset.zone === zone);
   if (card && eppHint) eppHint.textContent = card.dataset.hint;
+  playBuddyGesture('wave');
 };
 const flipCard = (n) => { const fc = slides[currentSlide].querySelector(`.flip-card:nth-child(${n})`); if (fc) fc.classList.add('flipped'); };
 
@@ -172,12 +174,12 @@ const autoScripts = [
     { t: '#stepsChecklist .step-box:nth-child(4)', a: () => highlightStep(3), s: 'Y paso cuatro, enjuagar o dejar secar. En superficies se enjuaga, y en la esterilización de equipo médico no hace falta.' }
   ],
   [
-    { t: '.epp-avatar-card', a: () => ['ojos', 'guantes', 'bata', 'mascarilla'].forEach(k => { const l = document.getElementById(`eppGear-${k}`); if (l) l.classList.add('hidden'); }), s: 'Para cuidar a quien cuida: cuando manipulemos el producto concentrado, usaremos siempre cuatro elementos de protección. Miren cómo me equipo.' },
-    { t: '.epp-card[data-zone="ojos"]', a: () => activateEpp('ojos'), s: 'Primero, gafas o careta, para evitar cualquier salpicadura en los ojos.' },
-    { t: '.epp-card[data-zone="guantes"]', a: () => activateEpp('guantes'), s: 'Segundo, guantes largos de nitrilo o butilo, para proteger nuestras manos.' },
-    { t: '.epp-card[data-zone="bata"]', a: () => activateEpp('bata'), s: 'Tercero, bata o delantal impermeable, para cuidar la piel y el uniforme.' },
-    { t: '.epp-card[data-zone="mascarilla"]', a: () => activateEpp('mascarilla'), s: 'Y cuarto, mascarilla para vapores, trabajando siempre en un área bien ventilada.' },
-    { t: '.epp-avatar-card', mood: 'happy', s: '¡Listo, protección completa! Y al terminar, lávense bien las manos y la cara con agua y jabón.' }
+    { t: '.epp-avatar-card', a: () => { setEppSpotlight(true); ['ojos', 'guantes', 'bata', 'mascarilla'].forEach(k => { const l = document.getElementById(`eppGear-${k}`); if (l) l.classList.add('hidden'); }); if (eppStageTag) eppStageTag.textContent = '🛡️ Preparando EPP...'; }, s: 'Para cuidar a quien cuida: cuando manipulemos el producto concentrado, usaremos siempre cuatro elementos de protección. Miren cómo me equipo.' },
+    { t: '.epp-avatar-card', a: () => activateEpp('ojos'), s: 'Primero, gafas o careta, para evitar cualquier salpicadura en los ojos.' },
+    { t: '.epp-avatar-card', a: () => activateEpp('guantes'), s: 'Segundo, guantes largos de nitrilo o butilo, para proteger nuestras manos.' },
+    { t: '.epp-avatar-card', a: () => activateEpp('bata'), s: 'Tercero, bata o delantal impermeable, para cuidar la piel y el uniforme.' },
+    { t: '.epp-avatar-card', a: () => activateEpp('mascarilla'), s: 'Y cuarto, mascarilla para vapores, trabajando siempre en un área bien ventilada.' },
+    { t: '.epp-avatar-card', mood: 'happy', a: () => { setEppSpotlight(false); if (eppStageTag) eppStageTag.textContent = '🛡️ ¡EPP Completo!'; }, s: '¡Listo, protección completa! Y al terminar, lávense bien las manos y la cara con agua y jabón.' }
   ],
   [
     { t: '.storage-col.do', s: 'Hablemos del almacenamiento. El porrón siempre debe estar parado, bien cerrado, y solo se abre al momento de dosificar.' },
@@ -209,12 +211,57 @@ function splitSentences(text) {
   return String(text).split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
 }
 
-// Habla UNA frase con boca sincronizada y watchdog anti-trabas
+// Gestos con Anime.js para darle vida a Gemi
+function playBuddyGesture(kind) {
+  if (typeof anime === 'undefined') return;
+  if (kind === 'wave') {
+    anime({ targets: '#buddyArmR', rotate: [0, -55, 15, -50, 0], duration: 950, easing: 'easeInOutSine' });
+    anime({ targets: '#buddyStar', scale: [1, 1.35, 1], duration: 700, easing: 'easeOutElastic(1, .6)' });
+  } else if (kind === 'speak') {
+    anime({ targets: '#buddyStar', scale: [1, 1.2, 1], duration: 480, easing: 'easeInOutQuad' });
+    anime({ targets: '#buddyArmL', rotate: [0, 18, 0], duration: 520, easing: 'easeInOutSine' });
+  } else if (kind === 'land') {
+    anime({ targets: '#buddySvg', scaleX: [1.14, 1], scaleY: [0.86, 1], duration: 420, easing: 'easeOutElastic(1, .5)' });
+  }
+}
+
+let activeAudio = null;
+let audioAnalyser = null;
+let audioFreqBuf = null;
+let lipRafId = null;
+
+function stopActiveVoice() {
+  if (activeAudio) {
+    try { activeAudio.pause(); activeAudio.currentTime = 0; } catch (e) {}
+    activeAudio.onended = null;
+    activeAudio.onerror = null;
+  }
+  cancelAnimationFrame(lipRafId);
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  stopLipSync();
+}
+
+function setupAudioAnalyser(audioEl) {
+  if (audioAnalyser) return true;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    const src = audioCtx.createMediaElementSource(audioEl);
+    audioAnalyser = audioCtx.createAnalyser();
+    audioAnalyser.fftSize = 64;
+    src.connect(audioAnalyser);
+    audioAnalyser.connect(audioCtx.destination);
+    audioFreqBuf = new Uint8Array(audioAnalyser.frequencyBinCount);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Habla usando MP3 neuronal de Jorge (con lip-sync real por ondas) o respaldo Web Speech
 function speakOne(text) {
   return new Promise(resolve => {
     let done = false;
-    let started = false;
-    let gotBoundary = false;
     let lipTimer = null;
     let watchdog = null;
     const words = text.split(/\s+/).length;
@@ -223,9 +270,52 @@ function speakOne(text) {
       done = true;
       clearTimeout(watchdog);
       clearInterval(lipTimer);
+      cancelAnimationFrame(lipRafId);
       stopLipSync();
       resolve();
     };
+
+    const mp3File = window.__audioMap && window.__audioMap[text];
+    if (soundEnabled && mp3File) {
+      try {
+        if (!activeAudio) activeAudio = new Audio();
+        activeAudio.pause();
+        activeAudio.src = `assets/audio/${mp3File}`;
+        const hasAnalyser = !window.location.protocol.startsWith('file') && setupAudioAnalyser(activeAudio);
+        startLipSync();
+        playBuddyGesture('speak');
+
+        if (hasAnalyser) {
+          const tickLip = () => {
+            if (done || activeAudio.paused) return;
+            audioAnalyser.getByteFrequencyData(audioFreqBuf);
+            let sum = 0;
+            for (let i = 0; i < 10; i++) sum += audioFreqBuf[i];
+            const level = sum / 10;
+            if (buddyMouth) {
+              const sy = level > 18 ? Math.min(2.3, 0.7 + (level / 95) * 1.6) : 0.65;
+              buddyMouth.style.transform = `scaleY(${sy.toFixed(2)})`;
+            }
+            lipRafId = requestAnimationFrame(tickLip);
+          };
+          activeAudio.onplay = () => { lipRafId = requestAnimationFrame(tickLip); };
+        } else {
+          lipTimer = setInterval(pulseLipOnce, 175);
+        }
+
+        activeAudio.onended = finish;
+        activeAudio.onerror = finish;
+        watchdog = setTimeout(finish, Math.max(8000, words * 750 + 4000));
+        const p = activeAudio.play();
+        if (p && p.catch) p.catch(() => {
+          // Si el navegador bloquea autoplay MP3, intentar Web Speech o avanzar por tiempo
+          clearInterval(lipTimer);
+          cancelAnimationFrame(lipRafId);
+          watchdog = setTimeout(finish, Math.max(2400, words * 380));
+        });
+        return;
+      } catch (e) {}
+    }
 
     if (!soundEnabled || !('speechSynthesis' in window)) {
       startLipSync();
@@ -240,16 +330,12 @@ function speakOne(text) {
     if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'es-MX'; }
     u.rate = 1.07;
     u.pitch = 1.02;
-    u.onstart = () => { started = true; startLipSync(); };
-    u.onboundary = (e) => {
-      if (e.name && e.name !== 'word') return;
-      gotBoundary = true;
-      pulseLipOnce();
-    };
+    let started = false, gotBoundary = false;
+    u.onstart = () => { started = true; startLipSync(); playBuddyGesture('speak'); };
+    u.onboundary = (e) => { if (!e.name || e.name === 'word') { gotBoundary = true; pulseLipOnce(); } };
     u.onend = finish;
     u.onerror = finish;
     lipTimer = setInterval(() => { if (started && !gotBoundary) pulseLipOnce(); }, 190);
-    // Watchdog por si Chrome/Edge no dispara onend
     watchdog = setTimeout(finish, words * 650 + 5000);
     window.__gemiUtter = u;
     if (synth.paused) synth.resume();
@@ -258,6 +344,10 @@ function speakOne(text) {
 }
 
 async function speakChunk(text, alive = () => true) {
+  if (window.__audioMap && window.__audioMap[text]) {
+    await speakOne(text);
+    return;
+  }
   for (const sentence of splitSentences(text)) {
     if (!alive()) return;
     await speakOne(sentence);
@@ -266,8 +356,8 @@ async function speakChunk(text, alive = () => true) {
 
 function speakWithLipSync(text, onFinish) {
   if (!text) { if (onFinish) onFinish(); return false; }
-  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-  setTimeout(() => { speakChunk(text).then(() => { if (onFinish) onFinish(); }); }, 90);
+  stopActiveVoice();
+  setTimeout(() => { speakChunk(text).then(() => { if (onFinish) onFinish(); }); }, 60);
   return true;
 }
 
@@ -309,6 +399,7 @@ function stopLipSync() {
 
 function clearGemiFocus() {
   document.querySelectorAll('.gemi-focus').forEach(n => n.classList.remove('gemi-focus'));
+  document.querySelectorAll('.slide.stage-dimming').forEach(s => s.classList.remove('stage-dimming'));
 }
 
 // Lleva a Gemi junto al elemento del que está hablando
@@ -321,8 +412,10 @@ async function focusBuddyOn(el, mode = 'glide', scaleMul = 1) {
     await waitMs(550);
   }
   el.classList.add('gemi-focus');
+  if (slides[currentSlide]) slides[currentSlide].classList.add('stage-dimming');
   moveBuddyToElement(el, mode, scaleMul);
   await waitMs(mode === 'teleport' ? 450 : 350);
+  playBuddyGesture('land');
 }
 
 async function runAutoQuiz(alive) {
@@ -395,12 +488,12 @@ function stopAutoPresentation() {
   autoGen++;
   clearTimeout(autoStepTimer);
   clearGemiFocus();
+  if (typeof setEppSpotlight === 'function') setEppSpotlight(false);
   if (btnAutoPlay) {
     btnAutoPlay.classList.remove('active');
     btnAutoPlay.innerHTML = '<span>🤖 Auto</span>';
   }
-  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-  stopLipSync();
+  stopActiveVoice();
 }
 
 function startAutoPresentation() {
@@ -815,7 +908,7 @@ let classTimer = null;
 function stopClassroom() {
   classRunning = false;
   clearTimeout(classTimer);
-  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  stopActiveVoice();
   stepBoxes.forEach(b => b.classList.remove('teaching', 'dimmed'));
   if (btnTeachSteps) btnTeachSteps.textContent = '🎓 Que Gemi explique los 4 pasos';
   if (classroomStatus) classroomStatus.textContent = 'Haz clic en un paso o inicia la explicación guiada de los 4 pasos.';
@@ -874,9 +967,18 @@ if (btnTeachSteps) {
 }
 
 // ===== 10. SLIDE 7: GEMI CON EQUIPO DE PROTECCIÓN PERSONAL (EPP) =====
+const eppLayout = document.getElementById('eppLayout');
+const eppStageTag = document.getElementById('eppStageTag');
+const btnToggleEppCards = document.getElementById('btnToggleEppCards');
 const eppHint = document.getElementById('eppAvatarHint');
 const eppCards = Array.from(document.querySelectorAll('.epp-card'));
 const btnTeachEpp = document.getElementById('btnTeachEpp');
+const eppStageLabels = {
+  ojos: '🥽 Gafas / Careta de Protección',
+  guantes: '🧤 Guantes Largos de Nitrilo',
+  bata: '🥼 Bata / Delantal Impermeable',
+  mascarilla: '😷 Mascarilla para Vapores Ácidos'
+};
 const eppSpeeches = {
   ojos: 'Primero, gafas o careta de protección total para evitar cualquier salpicadura en los ojos.',
   guantes: 'Segundo, guantes largos de nitrilo o butilo para proteger nuestras manos.',
@@ -886,6 +988,18 @@ const eppSpeeches = {
 let eppClassRunning = false;
 let eppClassTimer = null;
 
+function setEppSpotlight(on) {
+  if (eppLayout) eppLayout.classList.toggle('epp-spotlight-mode', on);
+  if (btnToggleEppCards) btnToggleEppCards.textContent = on ? '📋 Ver tarjetas' : '👁️ Solo Gemi';
+}
+
+if (btnToggleEppCards) {
+  btnToggleEppCards.addEventListener('click', () => {
+    const isSpot = eppLayout && eppLayout.classList.contains('epp-spotlight-mode');
+    setEppSpotlight(!isSpot);
+  });
+}
+
 function equipGemiEpp(zoneKey, keepPrevious = false) {
   ['ojos', 'guantes', 'bata', 'mascarilla'].forEach(k => {
     const layer = document.getElementById(`eppGear-${k}`);
@@ -893,23 +1007,27 @@ function equipGemiEpp(zoneKey, keepPrevious = false) {
     if (k === zoneKey) layer.classList.remove('hidden');
     else if (!keepPrevious) layer.classList.add('hidden');
   });
+  if (eppStageTag && eppStageLabels[zoneKey]) eppStageTag.textContent = eppStageLabels[zoneKey];
 }
 
 function stopEppClass() {
   eppClassRunning = false;
   clearTimeout(eppClassTimer);
-  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  stopActiveVoice();
+  setEppSpotlight(false);
   if (btnTeachEpp) btnTeachEpp.textContent = '🎓 Que Gemi explique el EPP';
 }
 
 function teachEppStep(idx, autoAdvance = false) {
   if (idx >= eppCards.length) {
     stopEppClass();
+    if (eppStageTag) eppStageTag.textContent = '🛡️ ¡Gemi 100% Protegido!';
     if (eppHint) eppHint.textContent = '🛡️ ¡Gemi 100% protegido con todo su EPP!';
     return;
   }
   const card = eppCards[idx];
   const zone = card.dataset.zone;
+  if (autoAdvance) setEppSpotlight(true);
   eppCards.forEach(c => c.classList.remove('active-epp'));
   card.classList.add('active-epp');
   equipGemiEpp(zone, autoAdvance);
@@ -917,7 +1035,7 @@ function teachEppStep(idx, autoAdvance = false) {
   playTone(660, 0.06);
 
   const text = eppSpeeches[zone] || card.dataset.hint;
-  moveBuddyToElement(card, 'glide', 1.15);
+  if (!autoAdvance) moveBuddyToElement(card, 'glide', 1.15);
   const goNext = () => {
     if (!autoAdvance || !eppClassRunning) return;
     teachEppStep(idx + 1, true);

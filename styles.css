@@ -876,12 +876,30 @@ body.light-mode .welcome-curtain {
 }
 
 .gemi-focus {
-  outline: 2px solid rgba(45, 212, 191, 0.78) !important;
+  outline: 2px solid rgba(45, 212, 191, 0.85) !important;
   outline-offset: 4px;
-  box-shadow: 0 0 28px rgba(45, 212, 191, 0.32) !important;
+  box-shadow: 0 0 32px rgba(45, 212, 191, 0.42) !important;
   border-radius: 14px;
-  transition: box-shadow 0.3s ease, outline-color 0.3s ease;
+  opacity: 1 !important;
+  transition: box-shadow 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease;
 }
+
+.slide.stage-dimming .glass-card:not(.gemi-focus):not(:has(.gemi-focus)),
+.slide.stage-dimming .mat-chip:not(.gemi-focus),
+.slide.stage-dimming .task-btn:not(.gemi-focus),
+.slide.stage-dimming .step-box:not(.gemi-focus),
+.slide.stage-dimming .epp-card:not(.gemi-focus),
+.slide.stage-dimming .microbe-card:not(.gemi-focus),
+.slide.stage-dimming .flip-card:not(.gemi-focus) {
+  opacity: 0.44;
+  transition: opacity 0.35s ease;
+}
+
+#buddyArmL, #buddyArmR, #buddyStar, #buddyLegL, #buddyLegR {
+  transform-box: fill-box;
+  transform-origin: center top;
+}
+#buddyStar { transform-origin: center bottom; }
 
 .buddy-mouth {
   transform-box: fill-box;
@@ -1024,7 +1042,21 @@ body.light-mode .buddy-bubble {
 .cd-clock { font-family: 'Space Grotesk', sans-serif; font-size: 1.45rem; font-weight: 700; color: var(--cyan); min-width: 72px; }
 
 /* Slide 7: Interactive EPP Gemi */
-.epp-interactive-layout { display: grid; grid-template-columns: 0.72fr 1.28fr; gap: 16px; align-items: stretch; }
+.epp-interactive-layout { display: grid; grid-template-columns: 0.72fr 1.28fr; gap: 16px; align-items: stretch; transition: all 0.4s ease; }
+.epp-interactive-layout.epp-spotlight-mode { grid-template-columns: 1fr; }
+.epp-interactive-layout.epp-spotlight-mode .epp-grid-2x2 { display: none; }
+.epp-interactive-layout.epp-spotlight-mode .epp-avatar-card { max-width: 540px; width: 100%; margin: 0 auto; padding: 18px 24px; }
+.epp-interactive-layout.epp-spotlight-mode .epp-gemi-svg { width: 210px; height: 210px; }
+.epp-stage-tag {
+  background: rgba(45, 212, 191, 0.16);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.epp-stage-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .epp-avatar-card { padding: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
 .avatar-hint { font-size: 0.82rem; font-weight: 600; color: var(--cyan); text-align: center; }
 
