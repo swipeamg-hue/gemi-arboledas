@@ -1,15 +1,6 @@
-// ===== ESCENAS 3D ESTILIZADAS Y DETALLADAS CON THREE.JS (100% OFFLINE) =====
+// ===== ESCENAS 3D PBR + SHADERS GLSL + TSPARTICLES (100% OFFLINE) =====
 (function () {
   if (typeof THREE === 'undefined') return;
-
-  function makeTeardrop(mat) {
-    const g = new THREE.Group();
-    const bot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 10), mat);
-    const top = new THREE.Mesh(new THREE.ConeGeometry(0.095, 0.18, 10), mat);
-    top.position.y = 0.11;
-    g.add(bot, top);
-    return g;
-  }
 
   // 1. CAMPO DE PARTÍCULAS 3D GLOBAL
   const bgContainer = document.getElementById('bg3d');
@@ -149,7 +140,6 @@
     [[0, 1], [1, 3], [3, 4], [4, 5], [0, 6], [0, 7], [0, 8]].forEach(([i, j]) => {
       addBond(new THREE.Vector3(...atoms[i].pos), new THREE.Vector3(...atoms[j].pos));
     });
-    // Doble enlace C=O
     addBond(new THREE.Vector3(...atoms[1].pos), new THREE.Vector3(...atoms[2].pos), -0.12);
     addBond(new THREE.Vector3(...atoms[1].pos), new THREE.Vector3(...atoms[2].pos), 0.12);
 
@@ -207,7 +197,6 @@
     pLight.position.set(4, 5, 6);
     sceneBio.add(pLight);
 
-    // Patógeno 3D estilizado con picos y ojitos
     const pathogenGroup = new THREE.Group();
     const bodyMat = new THREE.MeshPhongMaterial({ color: 0xef4444, shininess: 70, specular: 0xffaaaa });
     const spikeMat = new THREE.MeshPhongMaterial({ color: 0xfca5a5, shininess: 90 });
@@ -229,7 +218,6 @@
       pathogenGroup.add(cone, tip);
     });
 
-    // Ojitos caricatura del patógeno
     const eyeW = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const eyeB = new THREE.MeshBasicMaterial({ color: 0x0f172a });
     [-0.38, 0.38].forEach(ex => {
@@ -241,7 +229,6 @@
     });
     sceneBio.add(pathogenGroup);
 
-    // Enjambre de Peracetic
     const swarm = [];
     const swarmGeo = new THREE.SphereGeometry(0.18, 12, 12);
     const swarmMat = new THREE.MeshPhongMaterial({ color: 0x2dd4bf, emissive: 0x0d9488, shininess: 100 });
@@ -254,22 +241,18 @@
       swarm.push(m);
     }
 
-    // Moléculas ecológicas finales: O2, H2O, Ácido Acético
     const ecoGroup = new THREE.Group();
-    // O2
     const o2 = new THREE.Group();
     const oMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, shininess: 100 });
     const oA = new THREE.Mesh(new THREE.SphereGeometry(0.48, 20, 20), oMat); oA.position.x = -0.35;
     const oB = new THREE.Mesh(new THREE.SphereGeometry(0.48, 20, 20), oMat); oB.position.x = 0.35;
     o2.add(oA, oB); o2.position.x = -3.0;
-    // H2O
     const h2o = new THREE.Group();
     const hMat = new THREE.MeshPhongMaterial({ color: 0xf8fafc, shininess: 100 });
     const hO = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 20), new THREE.MeshPhongMaterial({ color: 0x2dd4bf, shininess: 100 }));
     const h1 = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), hMat); h1.position.set(-0.55, 0.4, 0);
     const h2 = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), hMat); h2.position.set(0.55, 0.4, 0);
     h2o.add(hO, h1, h2);
-    // Ácido acético
     const ac = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), new THREE.MeshPhongMaterial({ color: 0x4ade80, shininess: 90 }));
     ac.position.x = 3.0;
     ecoGroup.add(o2, h2o, ac);
@@ -351,7 +334,6 @@
     const rimMesh = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.045, 12, 32), new THREE.MeshPhongMaterial({ color: 0x7dd3fc, shininess: 100 }));
     rimMesh.rotation.x = Math.PI / 2; rimMesh.position.y = 1.4;
 
-    // Anillos de graduación
     [-0.7, 0.0, 0.7].forEach(ry => {
       const tick = new THREE.Mesh(new THREE.TorusGeometry(1.16, 0.018, 8, 32), new THREE.MeshBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.6 }));
       tick.rotation.x = Math.PI / 2; tick.position.y = ry;
@@ -415,110 +397,307 @@
     renderBk();
   }
 
-  // 5. VISUALIZADOR 3D DETALLADO DE EMERGENCIAS (SLIDE 9)
+  // 5. MOTOR DE PARTÍCULAS REALISTAS TSPARTICLES (GITHUB tsparticles/tsparticles)
+  let tspReady = false;
+  let tspContainer = null;
+
+  async function ensureTsParticles() {
+    if (tspReady) return true;
+    if (typeof tsParticles === 'undefined') return false;
+    try {
+      if (typeof loadAll === 'function') await loadAll(tsParticles);
+      tspReady = true;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  const particlePresets = {
+    waterJet: {
+      fullScreen: { enable: false },
+      fpsLimit: 60,
+      particles: {
+        number: { value: 0 },
+        color: { value: ['#38BDF8', '#99F6E4', '#E0F2FE'] },
+        shape: { type: 'circle' },
+        opacity: { value: { min: 0.45, max: 0.95 }, animation: { enable: true, speed: 1.4, destroy: 'min' } },
+        size: { value: { min: 2, max: 5.5 } },
+        move: { enable: true, speed: { min: 8, max: 14 }, direction: 'right', outModes: { default: 'destroy' }, gravity: { enable: true, acceleration: 6 } }
+      },
+      emitters: [
+        { position: { x: 8, y: 42 }, rate: { delay: 0.035, quantity: 3 }, life: { duration: 0, count: 0 } },
+        { position: { x: 8, y: 58 }, rate: { delay: 0.035, quantity: 3 }, life: { duration: 0, count: 0 } }
+      ]
+    },
+    shower: {
+      fullScreen: { enable: false },
+      fpsLimit: 60,
+      particles: {
+        number: { value: 0 },
+        color: { value: ['#38BDF8', '#7DD3FC', '#CCFBF1'] },
+        shape: { type: 'circle' },
+        opacity: { value: { min: 0.4, max: 0.9 }, animation: { enable: true, speed: 1, destroy: 'min' } },
+        size: { value: { min: 2, max: 5 } },
+        move: { enable: true, speed: { min: 9, max: 16 }, direction: 'bottom', outModes: { default: 'destroy' }, gravity: { enable: true, acceleration: 9 } }
+      },
+      emitters: { position: { x: 50, y: 12 }, size: { width: 38, height: 4 }, rate: { delay: 0.025, quantity: 4 } }
+    },
+    freshAir: {
+      fullScreen: { enable: false },
+      fpsLimit: 60,
+      particles: {
+        number: { value: 26 },
+        color: { value: ['#2DD4BF', '#38BDF8', '#A7F3D0'] },
+        shape: { type: 'circle' },
+        opacity: { value: { min: 0.25, max: 0.78 } },
+        size: { value: { min: 3, max: 8 } },
+        move: { enable: true, speed: { min: 3.5, max: 6.5 }, direction: 'right', outModes: { default: 'out' }, straight: false }
+      }
+    },
+    toxicGas: {
+      fullScreen: { enable: false },
+      fpsLimit: 60,
+      particles: {
+        number: { value: 28 },
+        color: { value: ['#EF4444', '#84CC16', '#FACC15'] },
+        shape: { type: 'circle' },
+        opacity: { value: { min: 0.35, max: 0.82 } },
+        size: { value: { min: 5, max: 14 } },
+        move: { enable: true, speed: { min: 2.2, max: 4.8 }, direction: 'top', outModes: { default: 'out' } }
+      }
+    },
+    vermiculite: {
+      fullScreen: { enable: false },
+      fpsLimit: 60,
+      particles: {
+        number: { value: 0 },
+        color: { value: ['#E2E8F0', '#FDE68A', '#94A3B8'] },
+        shape: { type: 'square' },
+        opacity: { value: { min: 0.55, max: 0.95 } },
+        size: { value: { min: 3, max: 6.5 } },
+        move: { enable: true, speed: { min: 5, max: 10 }, direction: 'bottom', outModes: { default: 'destroy' }, gravity: { enable: true, acceleration: 8 } }
+      },
+      emitters: { position: { x: 52, y: 10 }, size: { width: 42, height: 4 }, rate: { delay: 0.04, quantity: 3 } }
+    },
+    frost: {
+      fullScreen: { enable: false },
+      fpsLimit: 60,
+      particles: {
+        number: { value: 22 },
+        color: { value: ['#BAE6FD', '#E0F2FE', '#2DD4BF'] },
+        shape: { type: 'circle' },
+        opacity: { value: { min: 0.3, max: 0.8 } },
+        size: { value: { min: 2.5, max: 6 } },
+        move: { enable: true, speed: 1.8, direction: 'bottom', outModes: { default: 'out' } }
+      }
+    },
+    sporesClear: {
+      fullScreen: { enable: false },
+      fpsLimit: 60,
+      particles: {
+        number: { value: 20 },
+        color: { value: ['#2DD4BF', '#4ADE80', '#38BDF8'] },
+        shape: { type: 'circle' },
+        opacity: { value: { min: 0.35, max: 0.85 } },
+        size: { value: { min: 2.5, max: 5.5 } },
+        move: { enable: true, speed: 2.5, outModes: { default: 'out' } }
+      }
+    }
+  };
+
+  window.__playStageParticles = async (presetName) => {
+    const el = document.getElementById('stageParticles');
+    if (!el) return;
+    if (tspContainer) {
+      try { tspContainer.destroy(); } catch (e) {}
+      tspContainer = null;
+    }
+    el.innerHTML = '';
+    if (!presetName || !particlePresets[presetName]) return;
+    const ok = await ensureTsParticles();
+    if (!ok) return;
+    try {
+      tspContainer = await tsParticles.load({ id: 'stageParticles', options: particlePresets[presetName] });
+    } catch (e) {}
+  };
+
+  // 6. ESCENAS 3D PBR REALISTAS DE EMERGENCIA (SLIDE 9) + GLSL AGUA / VERMICULITA
   const emEl = document.getElementById('em3D');
   if (emEl) {
-    const w = emEl.clientWidth || 300;
-    const h = emEl.clientHeight || 230;
+    const w = emEl.clientWidth || 340;
+    const h = emEl.clientHeight || 220;
     const sceneEm = new THREE.Scene();
-    const camEm = new THREE.PerspectiveCamera(45, w / h, 0.1, 50);
-    camEm.position.set(0, 0.5, 7.2);
+    const camEm = new THREE.PerspectiveCamera(42, w / h, 0.1, 60);
+    camEm.position.set(0, 0.35, 7.6);
 
     const renEm = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renEm.setSize(w, h);
     renEm.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     emEl.appendChild(renEm.domElement);
 
-    sceneEm.add(new THREE.AmbientLight(0xffffff, 0.85));
-    const emLight = new THREE.DirectionalLight(0x38bdf8, 1.6);
-    emLight.position.set(3, 5, 5);
-    sceneEm.add(emLight);
+    sceneEm.add(new THREE.AmbientLight(0xffffff, 0.75));
+    const keyLight = new THREE.DirectionalLight(0xe0f2fe, 1.8);
+    keyLight.position.set(4, 6, 7);
+    const fillLight = new THREE.PointLight(0x2dd4bf, 1.4, 24);
+    fillLight.position.set(-4, -2, 5);
+    sceneEm.add(keyLight, fillLight);
+
+    // Shader personalizado para superficie líquida realista con ondas
+    const waveUniforms = {
+      uTime: { value: 0 },
+      uColorA: { value: new THREE.Color('#0284C7') },
+      uColorB: { value: new THREE.Color('#38BDF8') }
+    };
+    const liquidShaderMat = new THREE.ShaderMaterial({
+      uniforms: waveUniforms,
+      transparent: true,
+      side: THREE.DoubleSide,
+      vertexShader: `
+        uniform float uTime;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vec3 p = position;
+          p.z += sin(p.x * 5.0 + uTime * 3.5) * 0.045 + cos(p.y * 5.0 + uTime * 2.8) * 0.045;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uColorA;
+        uniform vec3 uColorB;
+        varying vec2 vUv;
+        void main() {
+          float ripple = sin(length(vUv - 0.5) * 26.0 - uTime * 4.5) * 0.5 + 0.5;
+          vec3 col = mix(uColorA, uColorB, ripple);
+          gl_FragColor = vec4(col, 0.85);
+        }
+      `
+    });
 
     const emGroups = {};
-    const waterMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, emissive: 0x0284c7, transparent: true, opacity: 0.9, shininess: 110 });
+    const waterPbr = new THREE.MeshPhysicalMaterial({
+      color: 0x38bdf8, emissive: 0x0369a1, emissiveIntensity: 0.35,
+      transparent: true, opacity: 0.88, roughness: 0.08, clearcoat: 1.0, clearcoatRoughness: 0.06
+    });
 
-    // 1) OJOS: Ojo 3D estilizado + gotas lágrima
+    // Textura radial procedural para el iris anatómico del ojo
+    function makeIrisTexture() {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(64, 64, 14, 64, 64, 62);
+      grad.addColorStop(0, '#020617');
+      grad.addColorStop(0.28, '#020617');
+      grad.addColorStop(0.32, '#0284C7');
+      grad.addColorStop(0.75, '#38BDF8');
+      grad.addColorStop(1, '#0F172A');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 128, 128);
+      ctx.strokeStyle = 'rgba(224,242,254,0.35)';
+      for (let i = 0; i < 36; i++) {
+        const a = (i / 36) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(64 + Math.cos(a) * 20, 64 + Math.sin(a) * 20);
+        ctx.lineTo(64 + Math.cos(a) * 58, 64 + Math.sin(a) * 58);
+        ctx.stroke();
+      }
+      return new THREE.CanvasTexture(c);
+    }
+
+    // 1) OJOS: Ojo anatómico con iris azul/cian visible + córnea brillante + chorro salino
     const gOjos = new THREE.Group();
-    const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.95, 24, 24), new THREE.MeshPhongMaterial({ color: 0xf8fafc, shininess: 90 }));
-    const eyeIris = new THREE.Mesh(new THREE.SphereGeometry(0.45, 20, 20), new THREE.MeshPhongMaterial({ color: 0x0ea5e9, shininess: 100 }));
-    eyeIris.position.z = 0.68;
-    const eyePupil = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), new THREE.MeshBasicMaterial({ color: 0x0f172a }));
-    eyePupil.position.z = 0.96;
-    gOjos.add(eyeWhite, eyeIris, eyePupil);
-    const eyeDrops = [];
-    for (let i = 0; i < 14; i++) {
-      const d = makeTeardrop(waterMat);
-      d.rotation.z = -Math.PI / 2;
-      d.position.set(-2.5 + Math.random() * 5, (Math.random() - 0.5) * 1.4, 1.25);
-      d.userData = { speed: 0.06 + Math.random() * 0.04 };
-      gOjos.add(d);
-      eyeDrops.push(d);
+    const sclera = new THREE.Mesh(new THREE.SphereGeometry(1.12, 32, 32), new THREE.MeshPhongMaterial({ color: 0xf8fafc, shininess: 100 }));
+    sclera.scale.z = 0.88;
+    const irisDisk = new THREE.Mesh(new THREE.CircleGeometry(0.56, 32), new THREE.MeshBasicMaterial({ map: makeIrisTexture() }));
+    irisDisk.position.z = 1.02;
+    const corneaDome = new THREE.Mesh(new THREE.SphereGeometry(0.58, 24, 24), new THREE.MeshPhongMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.25, shininess: 140, specular: 0xffffff }));
+    corneaDome.position.z = 0.74;
+    const washRing1 = new THREE.Mesh(new THREE.TorusGeometry(1.45, 0.04, 12, 48), waterPbr);
+    const washRing2 = new THREE.Mesh(new THREE.TorusGeometry(1.75, 0.03, 12, 48), waterPbr);
+    gOjos.add(sclera, irisDisk, corneaDome, washRing1, washRing2);
+    const eyeJets = [];
+    for (let i = 0; i < 18; i++) {
+      const s = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 10), waterPbr);
+      s.position.set(-2.8 + Math.random() * 5.6, (Math.random() - 0.5) * 1.1, 1.35 + Math.random() * 0.25);
+      s.userData = { speed: 0.08 + Math.random() * 0.05 };
+      gOjos.add(s);
+      eyeJets.push(s);
     }
     emGroups.ojos = gOjos;
 
-    // 2) PIEL: Regadera de seguridad 3D con tubo + gotas lágrima
+    // 2) PIEL: Regadera industrial de seguridad + palanca + cascada de agua
     const gPiel = new THREE.Group();
-    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 14), new THREE.MeshPhongMaterial({ color: 0x64748b, shininess: 80 }));
-    pipe.position.y = 2.2;
-    const showerHead = new THREE.Mesh(new THREE.ConeGeometry(0.95, 0.55, 22), new THREE.MeshPhongMaterial({ color: 0x94a3b8, shininess: 90 }));
-    showerHead.position.y = 1.6;
-    const shieldBase = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.45, 0.16, 24), new THREE.MeshPhongMaterial({ color: 0x2dd4bf, transparent: true, opacity: 0.55 }));
-    shieldBase.position.y = -1.4;
-    gPiel.add(pipe, showerHead, shieldBase);
+    const steelMat = new THREE.MeshPhongMaterial({ color: 0xcbd5e1, shininess: 120, specular: 0xffffff });
+    const greenSafetyMat = new THREE.MeshPhongMaterial({ color: 0x10b981, shininess: 80 });
+    const topPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.1, 16), steelMat);
+    topPipe.position.set(0, 2.1, 0);
+    const nozzle = new THREE.Mesh(new THREE.ConeGeometry(1.05, 0.65, 28), greenSafetyMat);
+    nozzle.position.set(0, 1.5, 0);
+    const pullRod = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.25, 10), steelMat);
+    pullRod.position.set(1.2, 1.0, 0);
+    const pullHandle = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 10, 3), new THREE.MeshPhongMaterial({ color: 0xfacc15 }));
+    pullHandle.position.set(1.2, 0.25, 0);
+    const waterPool = new THREE.Mesh(new THREE.CircleGeometry(1.65, 32), liquidShaderMat);
+    waterPool.rotation.x = -Math.PI / 2;
+    waterPool.position.y = -1.45;
+    gPiel.add(topPipe, nozzle, pullRod, pullHandle, waterPool);
     const showerDrops = [];
-    for (let i = 0; i < 20; i++) {
-      const d = makeTeardrop(waterMat);
-      d.position.set((Math.random() - 0.5) * 1.6, -1.2 + Math.random() * 2.5, (Math.random() - 0.5) * 1.2);
-      d.userData = { speed: 0.06 + Math.random() * 0.04 };
+    for (let i = 0; i < 28; i++) {
+      const d = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.055, 0.28, 8), waterPbr);
+      d.position.set((Math.random() - 0.5) * 1.65, -1.3 + Math.random() * 2.7, (Math.random() - 0.5) * 1.15);
+      d.userData = { speed: 0.08 + Math.random() * 0.05 };
       gPiel.add(d);
       showerDrops.push(d);
     }
     emGroups.piel = gPiel;
 
-    // 3) INHALACIÓN: Pulmones 3D estilizados respirando + anillos de aire fresco
+    // 3) INHALACIÓN: Árbol bronquial anatómico (TubeGeometry) + pulmones respirando
     const gInh = new THREE.Group();
-    const lungMat = new THREE.MeshPhongMaterial({ color: 0xfb7185, shininess: 70, transparent: true, opacity: 0.88 });
-    const trachea = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.3, 12), lungMat); trachea.position.y = 0.8;
-    const lungL = new THREE.Mesh(new THREE.SphereGeometry(0.75, 20, 20), lungMat); lungL.scale.set(0.75, 1.35, 0.65); lungL.position.set(-0.75, -0.1, 0);
-    const lungR = new THREE.Mesh(new THREE.SphereGeometry(0.75, 20, 20), lungMat); lungR.scale.set(0.75, 1.35, 0.65); lungR.position.set(0.75, -0.1, 0);
-    gInh.add(trachea, lungL, lungR);
-    const airRings = [];
-    for (let i = 0; i < 3; i++) {
-      const r = new THREE.Mesh(new THREE.TorusGeometry(0.5 + i * 0.3, 0.045, 10, 32), new THREE.MeshBasicMaterial({ color: 0x2dd4bf, transparent: true, opacity: 0.75 }));
-      r.position.set(-2.2 + i * 1.4, 0, 0.7);
-      r.rotation.y = Math.PI / 2;
-      gInh.add(r);
-      airRings.push(r);
-    }
+    const tracheaMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, shininess: 90, transparent: true, opacity: 0.85 });
+    const curveL = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 1.45, 0), new THREE.Vector3(0, 0.45, 0), new THREE.Vector3(-0.75, -0.05, 0)]);
+    const curveR = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 1.45, 0), new THREE.Vector3(0, 0.45, 0), new THREE.Vector3(0.75, -0.05, 0)]);
+    const branchL = new THREE.Mesh(new THREE.TubeGeometry(curveL, 16, 0.12, 12, false), tracheaMat);
+    const branchR = new THREE.Mesh(new THREE.TubeGeometry(curveR, 16, 0.12, 12, false), tracheaMat);
+    const lungMat = new THREE.MeshPhongMaterial({ color: 0xf472b6, emissive: 0x831843, emissiveIntensity: 0.35, transparent: true, opacity: 0.86, shininess: 85 });
+    const lungL = new THREE.Mesh(new THREE.SphereGeometry(0.82, 24, 24), lungMat);
+    lungL.scale.set(0.72, 1.32, 0.65); lungL.position.set(-0.92, -0.25, 0);
+    const lungR = new THREE.Mesh(new THREE.SphereGeometry(0.82, 24, 24), lungMat);
+    lungR.scale.set(0.72, 1.32, 0.65); lungR.position.set(0.92, -0.25, 0);
+    gInh.add(branchL, branchR, lungL, lungR);
     emGroups.inhalacion = gInh;
 
-    // 4) INGESTIÓN: Vaso de agua 3D + símbolo prohibición
+    // 4) INGESTIÓN: Vaso moldeado LatheGeometry con agua ondulada + Símbolo NO Vomitar 3D
     const gIng = new THREE.Group();
-    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.55, 1.7, 22, 1, true), new THREE.MeshPhongMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.35, shininess: 120, side: THREE.DoubleSide }));
-    glass.position.x = -1.1;
-    const waterIn = new THREE.Mesh(new THREE.CylinderGeometry(0.66, 0.5, 1.1, 20), waterMat);
-    waterIn.position.set(-1.1, -0.25, 0);
-    const noMat = new THREE.MeshPhongMaterial({ color: 0xef4444, emissive: 0x7f1d1d, shininess: 90 });
-    const noRing = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.13, 12, 32), noMat); noRing.position.x = 1.1;
-    const noBar = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.17, 0.17), noMat); noBar.position.x = 1.1; noBar.rotation.z = Math.PI / 4;
-    gIng.add(glass, waterIn, noRing, noBar);
+    const pts = [new THREE.Vector2(0, -0.9), new THREE.Vector2(0.58, -0.9), new THREE.Vector2(0.82, 0.9), new THREE.Vector2(0.76, 0.92), new THREE.Vector2(0.53, -0.82), new THREE.Vector2(0, -0.82)];
+    const cupMesh = new THREE.Mesh(new THREE.LatheGeometry(pts, 28), new THREE.MeshPhongMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.38, shininess: 140, side: THREE.DoubleSide }));
+    cupMesh.position.x = -1.15;
+    const cupLiquid = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.52, 1.15, 24), waterPbr);
+    cupLiquid.position.set(-1.15, -0.22, 0);
+    const noMat = new THREE.MeshPhongMaterial({ color: 0xef4444, emissive: 0x991b1b, shininess: 100 });
+    const noRing = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.14, 14, 36), noMat);
+    noRing.position.x = 1.15;
+    const noBar = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.18, 0.18), noMat);
+    noBar.position.x = 1.15; noBar.rotation.z = Math.PI / 4;
+    gIng.add(cupMesh, cupLiquid, noRing, noBar);
     emGroups.ingestion = gIng;
 
-    // 5) DERRAME: Charco + bidón volcado + gránulos absorbentes
+    // 5) DERRAME: Charco Shader + Bidón 20L volcado + Rejilla de drenaje bloqueada + Granulados cayendo
     const gDer = new THREE.Group();
-    const puddle = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, 0.08, 28), new THREE.MeshPhongMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.78, shininess: 100 }));
-    puddle.position.y = -1.2;
-    const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.1, 18), new THREE.MeshPhongMaterial({ color: 0x1d4ed8, shininess: 70 }));
-    drum.rotation.z = 1.25; drum.position.set(-1.4, -0.8, -0.3);
-    const warnRing = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.055, 10, 40), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-    warnRing.rotation.x = Math.PI / 2; warnRing.position.y = -1.15;
-    gDer.add(puddle, drum, warnRing);
+    const spillPool = new THREE.Mesh(new THREE.CircleGeometry(1.85, 36), liquidShaderMat);
+    spillPool.rotation.x = -Math.PI / 2; spillPool.position.y = -1.25;
+    const drumBody = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 1.15, 22), new THREE.MeshPhongMaterial({ color: 0x1d4ed8, shininess: 90 }));
+    drumBody.rotation.z = 1.28; drumBody.position.set(-1.55, -0.82, -0.25);
+    const drainNo = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.06, 12, 48), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+    drainNo.rotation.x = Math.PI / 2; drainNo.position.y = -1.22;
+    gDer.add(spillPool, drumBody, drainNo);
     const granules = [];
-    const granMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0, shininess: 40 });
-    for (let i = 0; i < 20; i++) {
-      const g = new THREE.Mesh(new THREE.DodecahedronGeometry(0.14, 0), granMat);
-      g.position.set((Math.random() - 0.5) * 2.1, -1.0 + Math.random() * 2.6, (Math.random() - 0.5) * 1.6);
-      g.userData = { speed: 0.035 + Math.random() * 0.03 };
+    const granMat = new THREE.MeshPhongMaterial({ color: 0xfef3c7, shininess: 50 });
+    for (let i = 0; i < 24; i++) {
+      const g = new THREE.Mesh(new THREE.DodecahedronGeometry(0.12, 0), granMat);
+      g.position.set((Math.random() - 0.5) * 2.2, -1.0 + Math.random() * 2.5, (Math.random() - 0.5) * 1.5);
+      g.userData = { speed: 0.045 + Math.random() * 0.03 };
       gDer.add(g);
       granules.push(g);
     }
@@ -536,28 +715,27 @@
     function renderEm() {
       requestAnimationFrame(renderEm);
       if (window.__activeSlideIndex !== 8) return;
+      waveUniforms.uTime.value = Date.now() * 0.001;
 
       if (currentEm === 'ojos') {
-        gOjos.rotation.y = Math.sin(Date.now() * 0.002) * 0.25;
-        eyeDrops.forEach(d => { d.position.x += d.userData.speed; if (d.position.x > 2.5) d.position.x = -2.5; });
+        gOjos.rotation.y = Math.sin(Date.now() * 0.002) * 0.22;
+        washRing1.rotation.z += 0.025;
+        washRing2.rotation.z -= 0.018;
+        eyeJets.forEach(s => { s.position.x += s.userData.speed; if (s.position.x > 2.8) s.position.x = -2.8; });
       } else if (currentEm === 'piel') {
         gPiel.rotation.y += 0.006;
-        showerDrops.forEach(d => { d.position.y -= d.userData.speed; if (d.position.y < -1.3) d.position.y = 1.4; });
+        showerDrops.forEach(d => { d.position.y -= d.userData.speed; if (d.position.y < -1.35) d.position.y = 1.45; });
       } else if (currentEm === 'inhalacion') {
-        const breath = 1 + Math.sin(Date.now() * 0.003) * 0.08;
-        lungL.scale.set(0.75 * breath, 1.35 * breath, 0.65 * breath);
-        lungR.scale.set(0.75 * breath, 1.35 * breath, 0.65 * breath);
-        airRings.forEach((r, i) => {
-          r.position.x += 0.035;
-          if (r.position.x > 2.6) r.position.x = -2.6;
-          r.scale.setScalar(1 + Math.sin(Date.now() * 0.004 + i) * 0.12);
-        });
+        const breath = 1 + Math.sin(Date.now() * 0.0032) * 0.11;
+        lungL.scale.set(0.72 * breath, 1.32 * breath, 0.65 * breath);
+        lungR.scale.set(0.72 * breath, 1.32 * breath, 0.65 * breath);
+        gInh.rotation.y = Math.sin(Date.now() * 0.0014) * 0.28;
       } else if (currentEm === 'ingestion') {
-        gIng.rotation.y = Math.sin(Date.now() * 0.002) * 0.3;
-        noRing.rotation.z += 0.015;
+        gIng.rotation.y = Math.sin(Date.now() * 0.002) * 0.25;
+        noRing.rotation.z += 0.02;
       } else if (currentEm === 'derrame') {
-        gDer.rotation.y += 0.007;
-        granules.forEach(g => { g.position.y -= g.userData.speed; if (g.position.y < -1.1) g.position.y = 1.6; });
+        gDer.rotation.y += 0.006;
+        granules.forEach(g => { g.position.y -= g.userData.speed; g.rotation.x += 0.05; if (g.position.y < -1.15) g.position.y = 1.5; });
       }
 
       const nw = emEl.clientWidth, nh = emEl.clientHeight;
