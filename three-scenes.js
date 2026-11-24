@@ -159,6 +159,7 @@
       prevX = e.clientX; prevY = e.clientY;
     });
 
+    let lastMolW = 0, lastMolH = 0;
     function renderMol() {
       requestAnimationFrame(renderMol);
       if (window.__activeSlideIndex !== 0) return;
@@ -168,7 +169,8 @@
       }
       ring2.rotation.z += 0.006;
       const nw = molEl.clientWidth, nh = molEl.clientHeight;
-      if (nw && nh && renMol.domElement.width !== nw) {
+      if (nw > 4 && nh > 4 && (nw !== lastMolW || nh !== lastMolH)) {
+        lastMolW = nw; lastMolH = nh;
         camMol.aspect = nw / nh;
         camMol.updateProjectionMatrix();
         renMol.setSize(nw, nh);
@@ -276,6 +278,7 @@
       }
     };
 
+    let lastBioW = 0, lastBioH = 0;
     function renderBio() {
       requestAnimationFrame(renderBio);
       if (window.__activeSlideIndex !== 2) return;
@@ -297,7 +300,8 @@
         });
       }
       const nw = bioEl.clientWidth, nh = bioEl.clientHeight;
-      if (nw && nh && renBio.domElement.width !== nw) {
+      if (nw > 4 && nh > 4 && (nw !== lastBioW || nh !== lastBioH)) {
+        lastBioW = nw; lastBioH = nh;
         camBio.aspect = nw / nh;
         camBio.updateProjectionMatrix();
         renBio.setSize(nw, nh);
@@ -377,6 +381,7 @@
       }
     };
 
+    let lastBkW = 0, lastBkH = 0;
     function renderBk() {
       requestAnimationFrame(renderBk);
       if (window.__activeSlideIndex !== 4) return;
@@ -387,7 +392,8 @@
         if (b.position.y > topY) b.position.y = -1.32;
       });
       const nw = beakerEl.clientWidth, nh = beakerEl.clientHeight;
-      if (nw && nh && renBk.domElement.width !== nw) {
+      if (nw > 4 && nh > 4 && (nw !== lastBkW || nh !== lastBkH)) {
+        lastBkW = nw; lastBkH = nh;
         camBk.aspect = nw / nh;
         camBk.updateProjectionMatrix();
         renBk.setSize(nw, nh);
@@ -739,7 +745,8 @@
       }
 
       const nw = emEl.clientWidth, nh = emEl.clientHeight;
-      if (nw && nh && renEm.domElement.width !== nw) {
+      if (nw > 4 && nh > 4 && (nw !== renEm._lastW || nh !== renEm._lastH)) {
+        renEm._lastW = nw; renEm._lastH = nh;
         camEm.aspect = nw / nh;
         camEm.updateProjectionMatrix();
         renEm.setSize(nw, nh);

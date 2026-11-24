@@ -1,4 +1,4 @@
-// ===== 1. CONTROL DE ÍNDICE GLOBAL Y AUDIO SUTIL (WEB AUDIO API) =====
+// ===== 1. AUDIO SUTIL (WEB AUDIO API) =====
 window.__activeSlideIndex = 0;
 let soundEnabled = true;
 let audioCtx = null;
@@ -31,45 +31,16 @@ if (btnSound) {
   });
 }
 
-// ===== 2. EFECTO 3D TILT + SPOTLIGHT DINÁMICO EN TARJETAS =====
-document.querySelectorAll('.glass-card').forEach(el => {
-  el.addEventListener('mousemove', (e) => {
-    const rect = el.getBoundingClientRect();
-    el.style.setProperty('--mx', `${e.clientX - rect.left}px`);
-    el.style.setProperty('--my', `${e.clientY - rect.top}px`);
-    if (el.hasAttribute('data-tilt')) {
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      el.style.transform = `perspective(700px) rotateX(${(-y * 6).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateY(-2px)`;
-    }
-  });
-  el.addEventListener('mouseleave', () => {
-    if (el.hasAttribute('data-tilt')) el.style.transform = '';
-  });
-});
-
-// ===== 2B. TELÓN DE BIENVENIDA =====
+// ===== 2. TELÓN DE BIENVENIDA =====
 const welcomeCurtain = document.getElementById('welcomeCurtain');
 const btnStartPres = document.getElementById('btnStartPresentation');
 if (btnStartPres && welcomeCurtain) {
   btnStartPres.addEventListener('click', () => {
     playTone(660, 0.09);
     if (window.__triggerWarp3D) window.__triggerWarp3D();
-    if (typeof gsap !== 'undefined') {
-      gsap.to(welcomeCurtain, {
-        opacity: 0,
-        scale: 1.06,
-        duration: 0.55,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          welcomeCurtain.classList.add('hidden');
-          updateBuddyForSlide(currentSlide);
-        }
-      });
-    } else {
-      welcomeCurtain.classList.add('hidden');
-      updateBuddyForSlide(currentSlide);
-    }
+    const done = () => { welcomeCurtain.classList.add('hidden'); updateBuddyForSlide(currentSlide); };
+    if (typeof gsap !== 'undefined') gsap.to(welcomeCurtain, { opacity: 0, scale: 1.06, duration: 0.45, ease: 'power2.inOut', onComplete: done });
+    else done();
   });
 }
 
@@ -80,46 +51,36 @@ if (btnStartAuto && welcomeCurtain) {
     if (btnSound) btnSound.classList.add('active');
     playTone(660, 0.09);
     if (window.__triggerWarp3D) window.__triggerWarp3D();
-    if (typeof gsap !== 'undefined') {
-      gsap.to(welcomeCurtain, {
-        opacity: 0,
-        scale: 1.06,
-        duration: 0.55,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          welcomeCurtain.classList.add('hidden');
-          startAutoPresentation();
-        }
-      });
-    } else {
-      welcomeCurtain.classList.add('hidden');
-      startAutoPresentation();
-    }
+    const done = () => { welcomeCurtain.classList.add('hidden'); startAutoPresentation(); };
+    if (typeof gsap !== 'undefined') gsap.to(welcomeCurtain, { opacity: 0, scale: 1.06, duration: 0.45, ease: 'power2.inOut', onComplete: done });
+    else done();
   });
 }
 
-// ===== 2C. GUIONES SINCRONIZADOS + ANIMACIONES EN ESCENA (SOLO 1:300 Y 1:75 EN DOSIFICACIÓN) =====
+// ===== 2B. GUIONES DE GEMI EN LAS 11 LÁMINAS (SOLO DILUCIONES 1:300 Y 1:75) =====
 let autoMode = false;
 let autoStepTimer = null;
 let autoGen = 0;
 const btnAutoPlay = document.getElementById('btnAutoPlay');
 
-const waitMs = (ms) => new Promise(r => setTimeout(r, ms));
 const sleepAuto = (ms) => new Promise(r => { autoStepTimer = setTimeout(r, ms); });
-const clickInSlide = (sel) => { const el = slides[currentSlide].querySelector(sel); if (el) el.click(); };
 const setLiters = (v) => { if (litersRange) { litersRange.value = v; updateCalc(); } };
+const selectTask = (ratio) => {
+  const b = Array.from(document.querySelectorAll('.task-btn')).find(x => x.dataset.ratio === ratio);
+  if (b) b.click();
+};
 
 const autoScripts = [
-  // Slide 1: Portada
+  // Slide 1: Portada (Hospital, Molécula 3D, rapidez, biodegradación, uso, porrón)
   [
-    { t: 'h1', s: 'Hola, ¿cómo están? Bienvenidos, equipo de enfermería de Hospital Arboledas. Yo soy Gemi, su asistente virtual, y hoy los voy a acompañar durante esta sesión.' },
-    { t: '.lead', s: 'En los próximos minutos vamos a conocer Swipe Peracetic, un desinfectante rápido, práctico y biodegradable, pensado para el cuidado diario de nuestros pacientes.' },
-    { t: '.hl-item:nth-child(1)', s: 'Lo primero que deben saber: actúa muy rápido. Con solo 5 a 10 minutos de contacto logra eliminar el 99.999 por ciento de los microorganismos.' },
-    { t: '.hl-item:nth-child(2)', s: 'Además, no deja residuos tóxicos, porque se descompone en agua, oxígeno y ácido acético, que es básicamente un vinagre suave.' },
-    { t: '.hl-item:nth-child(3)', s: 'Y es muy fácil de usar en su turno: no hace espuma, no deja olor y funciona incluso con agua fría.' },
-    { t: '.floating-product', s: 'Este es el producto. Viene en un porrón de 20 litros, del cual solo usaremos unos cuantos mililitros cada vez. ¡Comencemos!' }
+    { vis: 'portada_hosp', mood: 'happyOpen', s: 'Hola, ¿cómo están? Bienvenidos, equipo de enfermería de Hospital Arboledas. Yo soy Gemi, su asistente virtual, y hoy los voy a acompañar durante esta sesión.' },
+    { vis: 'portada_mol', s: 'En los próximos minutos vamos a conocer Swipe Peracetic, un desinfectante rápido, práctico y biodegradable, pensado para el cuidado diario de nuestros pacientes.' },
+    { vis: 'portada_rapida', s: 'Lo primero que deben saber: actúa muy rápido. Con solo 5 a 10 minutos de contacto logra eliminar el 99.999 por ciento de los microorganismos.' },
+    { vis: 'portada_biodeg', s: 'Además, no deja residuos tóxicos, porque se descompone en agua, oxígeno y ácido acético, que es básicamente un vinagre suave.' },
+    { vis: 'portada_uso', s: 'Y es muy fácil de usar en su turno: no hace espuma, no deja olor y funciona incluso con agua fría.' },
+    { vis: 'portada_porron', mood: 'happyOpen', s: 'Este es el producto. Viene en un porrón de 20 litros, del cual solo usaremos unos cuantos mililitros cada vez. ¡Comencemos!' }
   ],
-  // Slide 2: Perfil del Producto (Protagonismo 100% Gemi + pop-in animado)
+  // Slide 2: Perfil del Producto
   [
     { vis: 'perfil_conc', s: '¿Qué es Swipe Peracetic? Es un desinfectante líquido a base de ácido peracético, en una concentración del 14 al 16 por ciento.' },
     { vis: 'perfil_stat', s: 'En pruebas de laboratorio logró eliminar el 99.999 por ciento de la bacteria E. coli, en apenas 30 segundos de contacto.' },
@@ -133,12 +94,12 @@ const autoScripts = [
   ],
   // Slide 3: Simulador 3D
   [
-    { t: 'h2', s: 'Ahora veamos cómo actúa, con una simulación en tres dimensiones.' },
-    { t: '#simViewport', a: () => { if (btnRunSim) btnRunSim.click(); }, s: 'Primero, las moléculas de ácido peracético rodean al microorganismo y rompen su pared celular por oxidación.' },
-    { t: '#simViewport', s: 'En 5 a 10 minutos de contacto, el microorganismo queda totalmente neutralizado.' },
-    { t: '.biodeg-banner', s: 'Y lo mejor: después de actuar, el producto se transforma en oxígeno, agua y ácido acético. Por eso es cien por ciento biodegradable.' }
+    { vis: 'sim_intro', s: 'Ahora veamos cómo actúa, con una simulación en tres dimensiones.' },
+    { vis: 'sim_phase1', s: 'Primero, las moléculas de ácido peracético rodean al microorganismo y rompen su pared celular por oxidación.' },
+    { vis: 'sim_phase2', s: 'En 5 a 10 minutos de contacto, el microorganismo queda totalmente neutralizado.' },
+    { vis: 'sim_phase3', mood: 'happyOpen', s: 'Y lo mejor: después de actuar, el producto se transforma en oxígeno, agua y ácido acético. Por eso es cien por ciento biodegradable.' }
   ],
-  // Slide 4: Compatibilidad Clínica (Protagonismo 100% Gemi + animaciones)
+  // Slide 4: Compatibilidad Clínica
   [
     { vis: null, s: 'Esto es muy importante para su día a día: ¿dónde sí y dónde no debemos aplicarlo?' },
     { vis: 'compat_acero', mood: 'happyOpen', s: 'Sí es seguro en acero inoxidable. De hecho, ayuda a prevenir el sarro.' },
@@ -148,15 +109,15 @@ const autoScripts = [
     { vis: 'compat_cloro', mood: 'alert', s: 'Y ahora, la regla de oro, la más importante de toda la plática: nunca, nunca mezclen Swipe Peracetic con cloro.' },
     { vis: 'compat_gas', mood: 'alert', s: 'Al mezclarse con cloro se libera gas cloro, que es altamente tóxico. Así que siempre en recipientes separados.' }
   ],
-  // Slide 5: Calculadora (SOLO 1:300 y 1:75)
+  // Slide 5: Calculadora (Solo 1:300 y 1:75)
   [
-    { t: '#taskButtons', s: 'Ahora veamos las dos diluciones oficiales en esta calculadora interactiva.' },
-    { t: '.task-btn:nth-child(1)', a: () => { clickInSlide('.task-btn:nth-child(1)'); setLiters(5); }, s: 'Para dosis de choque y áreas críticas usamos 1 a 300, que son 3.3 mililitros por cada litro de agua.' },
-    { t: '.liters-control', a: () => setLiters(10), s: 'Por ejemplo, en 10 litros de agua agregamos 33 mililitros de producto, y sí requiere enjuague después.' },
-    { t: '.task-btn:nth-child(2)', a: () => { clickInSlide('.task-btn:nth-child(2)'); setLiters(5); }, s: 'Y para esterilizar equipo médico compatible, usamos la dilución 1 a 75, que son 13.3 mililitros por litro. En este caso no se necesita enjuague.' },
-    { t: '.calc-result-card', s: 'Un consejo: preparen la mezcla justo antes de usarla, y nunca regresen la mezcla sobrante al porrón original.' }
+    { vis: 'calc_panel', a: () => { selectTask('1:300'); setLiters(5); }, s: 'Ahora veamos las dos diluciones oficiales en esta calculadora interactiva.' },
+    { vis: 'calc_panel', a: () => { selectTask('1:300'); setLiters(5); }, s: 'Para dosis de choque y áreas críticas usamos 1 a 300, que son 3.3 mililitros por cada litro de agua.' },
+    { vis: 'calc_panel', a: () => setLiters(10), s: 'Por ejemplo, en 10 litros de agua agregamos 33 mililitros de producto, y sí requiere enjuague después.' },
+    { vis: 'calc_panel', a: () => { selectTask('1:75'); setLiters(5); }, s: 'Y para esterilizar equipo médico compatible, usamos la dilución 1 a 75, que son 13.3 mililitros por litro. En este caso no se necesita enjuague.' },
+    { vis: 'calc_panel', s: 'Un consejo: preparen la mezcla justo antes de usarla, y nunca regresen la mezcla sobrante al porrón original.' }
   ],
-  // Slide 6: Flujo de Turno (Protagonismo 100% Gemi + pasos aparecen y desaparecen)
+  // Slide 6: Rutina en 4 Pasos
   [
     { vis: null, s: 'Ahora sí, la rutina en el turno. Son solo cuatro pasos muy sencillos.' },
     { vis: 'paso_1', s: 'Paso uno, limpieza previa. Antes de desinfectar, retiren siempre la suciedad visible o la materia orgánica.' },
@@ -164,7 +125,7 @@ const autoScripts = [
     { vis: 'paso_3', s: 'Paso tres, esperar de 5 a 10 minutos. Este es el paso clave: no sequen la superficie antes de tiempo.' },
     { vis: 'paso_4', mood: 'happyOpen', s: 'Y paso cuatro, enjuagar o dejar secar. En áreas críticas 1 a 300 se enjuaga, y en 1 a 75 para equipo médico no hace falta.' }
   ],
-  // Slide 7: EPP Obligatorio (Solo Gemi equipándose)
+  // Slide 7: EPP Obligatorio
   [
     { a: () => resetEppGear(), s: 'Para cuidar a quien cuida: cuando manipulemos el producto concentrado, usaremos siempre cuatro elementos de protección. Miren cómo me equipo.' },
     { a: () => equipGemiEpp('ojos', true), s: 'Primero, gafas o careta, para evitar cualquier salpicadura en los ojos.' },
@@ -173,7 +134,7 @@ const autoScripts = [
     { a: () => equipGemiEpp('mascarilla', true), s: 'Y cuarto, mascarilla para vapores, trabajando siempre en un área bien ventilada.' },
     { mood: 'happyOpen', a: () => { if (eppStageTag) eppStageTag.textContent = '🛡️ ¡Gemi 100% Protegido!'; playBuddyGesture('cheer'); }, s: '¡Listo, protección completa! Y al terminar, lávense bien las manos y la cara con agua y jabón.' }
   ],
-  // Slide 8: Almacenamiento Seguro (Protagonismo 100% Gemi)
+  // Slide 8: Almacenamiento
   [
     { vis: 'store_vertical', s: 'Hablemos del almacenamiento. El porrón siempre debe estar parado, bien cerrado, y solo se abre al momento de dosificar.' },
     { vis: 'store_fresco', s: 'Guárdenlo en un lugar fresco, seco y ventilado. Tiene una vida útil de 12 meses en su envase original.' },
@@ -181,7 +142,7 @@ const autoScripts = [
     { vis: 'store_calor', mood: 'alert', s: 'Miren este termómetro: si el almacén pasa de 35 grados, hay que reubicar el porrón a un área más fresca.' },
     { vis: 'store_ok', mood: 'happyOpen', s: 'En cambio, a una temperatura como 22 grados, el producto se conserva perfectamente.' }
   ],
-  // Slide 9: Respuesta Inmediata (Protagonismo 100% Gemi + Animaciones 3D + tsParticles)
+  // Slide 9: Emergencias 3D + tsParticles
   [
     { vis: null, s: 'Ahora repasemos qué hacer en caso de algún accidente.' },
     { vis: 'em_ojos', s: 'Si el producto salpica en los ojos: enjuaguen de inmediato con abundante agua durante al menos 15 minutos, y busquen atención médica.' },
@@ -192,14 +153,14 @@ const autoScripts = [
   ],
   // Slide 10: Quiz
   [
-    { t: '.quiz-box', a: () => { qIndex = 0; qScore = 0; renderQuiz(); }, s: 'Llegó el momento del mini quiz. Les haré cuatro preguntas. Piensen su respuesta, y después yo les muestro la correcta.' },
+    { vis: 'quiz_panel', a: () => { qIndex = 0; qScore = 0; renderQuiz(); }, s: 'Llegó el momento del mini quiz. Les haré cuatro preguntas. Piensen su respuesta, y después yo les muestro la correcta.' },
     { quiz: true }
   ],
   // Slide 11: Cierre
   [
-    { t: '.closing-left h2', mood: 'happy', a: () => { spawnConfetti(48); const svg = document.getElementById('buddySvg'); if (svg && typeof gsap !== 'undefined') gsap.fromTo(svg, { scaleY: 1 }, { scaleY: 0.78, duration: 0.35, yoyo: true, repeat: 1 }); }, s: 'Y con esto terminamos. Muchas gracias, equipo de enfermería de Hospital Arboledas, por su atención, y por cuidar cada detalle.' },
-    { t: '.qr-box', s: 'Pueden escanear este código QR con su celular, para llevarse la calculadora y toda la información.' },
-    { t: '.docs-list', mood: 'happy', s: 'Aquí también encontrarán la guía técnica, la hoja de seguridad y el informe de laboratorio. ¿Tienen alguna pregunta?' }
+    { vis: 'close_thanks', mood: 'happyOpen', a: () => spawnConfetti(45), s: 'Y con esto terminamos. Muchas gracias, equipo de enfermería de Hospital Arboledas, por su atención, y por cuidar cada detalle.' },
+    { vis: 'close_qr', s: 'Pueden escanear este código QR con su celular, para llevarse la calculadora y toda la información.' },
+    { vis: 'close_docs', mood: 'happyOpen', s: 'Aquí también encontrarán la guía técnica, la hoja de seguridad y el informe de laboratorio. ¿Tienen alguna pregunta?' }
   ]
 ];
 
@@ -207,29 +168,27 @@ function splitSentences(text) {
   return String(text).split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
 }
 
-// ===== 2D. GESTOS ANIME.JS + VISEMAS WORDBOUNDRY + KARAOKE + MIRADA DE LECTURA GSAP =====
+// ===== 2C. GESTOS ANIME.JS + VISEMAS WORDBOUNDRY + MIRADA GSAP =====
 function playBuddyGesture(kind) {
   if (typeof anime === 'undefined') return;
   if (kind === 'wave') {
-    anime({ targets: '#buddyArmR, #eppArmR', rotate: [0, -55, 15, -50, 0], duration: 950, easing: 'easeInOutSine' });
-    anime({ targets: '#buddyStar, #eppStar', scale: [1, 1.35, 1], duration: 700, easing: 'easeOutElastic(1, .6)' });
+    anime({ targets: '#eppArmR', rotate: [0, -55, 15, -50, 0], duration: 950, easing: 'easeInOutSine' });
+    anime({ targets: '#eppStar', scale: [1, 1.35, 1], duration: 700, easing: 'easeOutElastic(1, .6)' });
   } else if (kind === 'speak') {
-    anime({ targets: '#buddyStar, #eppStar', scale: [1, 1.22, 1], duration: 480, easing: 'easeInOutQuad' });
-    anime({ targets: '#buddyArmL, #eppArmL', rotate: [0, 18, 0], duration: 520, easing: 'easeInOutSine' });
+    anime({ targets: '#eppStar', scale: [1, 1.22, 1], duration: 480, easing: 'easeInOutQuad' });
+    anime({ targets: '#eppArmL', rotate: [0, 18, 0], duration: 520, easing: 'easeInOutSine' });
   } else if (kind === 'point') {
-    anime({ targets: '#buddyArmR, #eppArmR', rotate: [0, -48, -32, 0], duration: 680, easing: 'easeOutBack' });
-    anime({ targets: '#buddyStar, #eppStar', rotate: [0, 15, 0], duration: 520, easing: 'easeOutSine' });
+    anime({ targets: '#eppArmR', rotate: [0, -48, -32, 0], duration: 680, easing: 'easeOutBack' });
+    anime({ targets: '#eppStar', rotate: [0, 15, 0], duration: 520, easing: 'easeOutSine' });
   } else if (kind === 'nod') {
-    anime({ targets: '#buddySvg, #eppGemiSvg', translateY: [0, 4, 0, 3, 0], duration: 520, easing: 'easeInOutSine' });
+    anime({ targets: '#eppGemiSvg', translateY: [0, 4, 0, 3, 0], duration: 520, easing: 'easeInOutSine' });
   } else if (kind === 'alertShake') {
-    anime({ targets: '#buddySvg, #eppGemiSvg', translateX: [0, -5, 5, -4, 4, 0], duration: 480, easing: 'easeInOutSine' });
-    anime({ targets: '#buddyStar, #eppStar', scale: [1, 1.4, 1], duration: 480, easing: 'easeOutBack' });
+    anime({ targets: '#eppGemiSvg', translateX: [0, -5, 5, -4, 4, 0], duration: 480, easing: 'easeInOutSine' });
+    anime({ targets: '#eppStar', scale: [1, 1.4, 1], duration: 480, easing: 'easeOutBack' });
   } else if (kind === 'cheer') {
-    anime({ targets: '#buddyArmL, #eppArmL', rotate: [0, 46, 20, 46, 0], duration: 850, easing: 'easeOutBack' });
-    anime({ targets: '#buddyArmR, #eppArmR', rotate: [0, -46, -20, -46, 0], duration: 850, easing: 'easeOutBack' });
-    anime({ targets: '#buddySvg, #eppGemiSvg', translateY: [0, -10, 0], duration: 600, easing: 'easeOutBounce' });
-  } else if (kind === 'land') {
-    anime({ targets: '#buddySvg', scaleX: [1.14, 1], scaleY: [0.86, 1], duration: 420, easing: 'easeOutElastic(1, .5)' });
+    anime({ targets: '#eppArmL', rotate: [0, 46, 20, 46, 0], duration: 850, easing: 'easeOutBack' });
+    anime({ targets: '#eppArmR', rotate: [0, -46, -20, -46, 0], duration: 850, easing: 'easeOutBack' });
+    anime({ targets: '#eppGemiSvg', translateY: [0, -10, 0], duration: 600, easing: 'easeOutBounce' });
   }
 }
 
@@ -245,11 +204,8 @@ function setMouthFrame(state) {
   if (state === lastMouthState) return;
   lastMouthState = state;
   const html = mouthFrames[state] || mouthFrames[0];
-  [document.getElementById('buddyMouth'), document.getElementById('eppGemiMouth')].forEach(el => {
-    if (!el) return;
-    el.innerHTML = html;
-    el.classList.remove('hidden');
-  });
+  const el = document.getElementById('eppGemiMouth');
+  if (el) { el.innerHTML = html; el.classList.remove('hidden'); }
 }
 setMouthFrame(0);
 
@@ -264,12 +220,10 @@ function visemeAtTime(timeline, ms) {
   return ans;
 }
 
-const PROTAGONIST_SLIDES = new Set([1, 3, 5, 6, 7, 8]);
-const isStageSlide = (idx = currentSlide) => PROTAGONIST_SLIDES.has(idx);
-
 let activeAudio = null;
 let lipRafId = null;
 let speakDelayTimer = null;
+let activeVoiceGen = 0;
 let slideTourRunning = false;
 let slideTourGen = 0;
 
@@ -296,29 +250,25 @@ function setBubbleContent(el, text) {
 }
 
 function highlightBubbleWord(wordIdx, progress = null) {
-  [document.getElementById('buddyBubble'), document.getElementById('eppSpeechBubble')].forEach(el => {
-    if (!el || !el._kwNodes || !el._kwNodes.length) return;
-    const targetIdx = progress !== null
-      ? Math.min(el._kwNodes.length - 1, Math.floor(Math.max(0, Math.min(0.999, progress)) * el._kwNodes.length))
-      : Math.min(el._kwNodes.length - 1, wordIdx);
-    el._kwNodes.forEach((node, i) => {
-      node.classList.toggle('spoken', i < targetIdx);
-      node.classList.toggle('reading', i === targetIdx);
-    });
+  const el = document.getElementById('eppSpeechBubble');
+  if (!el || !el._kwNodes || !el._kwNodes.length) return;
+  const targetIdx = progress !== null
+    ? Math.min(el._kwNodes.length - 1, Math.floor(Math.max(0, Math.min(0.999, progress)) * el._kwNodes.length))
+    : Math.min(el._kwNodes.length - 1, wordIdx);
+  el._kwNodes.forEach((node, i) => {
+    node.classList.toggle('spoken', i < targetIdx);
+    node.classList.toggle('reading', i === targetIdx);
   });
 }
 
 function clearBubbleHighlight() {
-  [document.getElementById('buddyBubble'), document.getElementById('eppSpeechBubble')].forEach(el => {
-    if (!el || !el._kwNodes) return;
-    el._kwNodes.forEach(node => node.classList.remove('spoken', 'reading'));
-  });
+  const el = document.getElementById('eppSpeechBubble');
+  if (!el || !el._kwNodes) return;
+  el._kwNodes.forEach(node => node.classList.remove('spoken', 'reading'));
 }
 
 function wordIndexFromChar(charIdx) {
-  const activeBubble = isStageSlide()
-    ? document.getElementById('eppSpeechBubble')
-    : document.getElementById('buddyBubble');
+  const activeBubble = document.getElementById('eppSpeechBubble');
   if (!activeBubble || !activeBubble._kwRanges || !activeBubble._kwRanges.length) return -1;
   const ranges = activeBubble._kwRanges;
   for (let i = 0; i < ranges.length; i++) {
@@ -327,7 +277,6 @@ function wordIndexFromChar(charIdx) {
   return ranges.length - 1;
 }
 
-// Seguimiento ocular GSAP sobre lo que Gemi lee o señala
 let currentReadingEl = null;
 let gazeLastTick = 0;
 let gazeResetTimer = null;
@@ -336,14 +285,10 @@ const gazeState = { ex: 0, ey: 0, px: 0, py: 0 };
 function applyGazeAttrs() {
   const eyeT = `translate(${gazeState.ex.toFixed(3)}, ${gazeState.ey.toFixed(3)})`;
   const pupT = `translate(${gazeState.px.toFixed(3)}, ${gazeState.py.toFixed(3)})`;
-  ['buddyEyes', 'eppEyes'].forEach(id => {
-    const g = document.getElementById(id);
-    if (g) g.setAttribute('transform', eyeT);
-  });
-  ['buddyPupils', 'eppPupils'].forEach(id => {
-    const p = document.getElementById(id);
-    if (p) p.setAttribute('transform', pupT);
-  });
+  const g = document.getElementById('eppEyes');
+  const p = document.getElementById('eppPupils');
+  if (g) g.setAttribute('transform', eyeT);
+  if (p) p.setAttribute('transform', pupT);
 }
 
 function tweenGazeTo(ex, ey, px, py, dur = 0.14) {
@@ -356,27 +301,17 @@ function tweenGazeTo(ex, ey, px, py, dur = 0.14) {
 }
 
 function lookBuddyAtElement(el, scanProgress = 0.5, forceTarget = null) {
-  if (buddySleeping) return;
-  const onStage = isStageSlide();
-  const svg = document.getElementById(onStage ? 'eppGemiSvg' : 'buddySvg');
+  const svg = document.getElementById('eppGemiSvg');
   if (!svg || !svg.getScreenCTM) return;
 
   let targetEl = forceTarget;
   if (!targetEl) {
-    if (onStage) {
-      const visPane = document.getElementById('stageVisualPane');
-      const eppBubble = document.getElementById('eppSpeechBubble');
-      const kwReading = eppBubble ? eppBubble.querySelector('.kw.reading') : null;
-      const eqActive = currentSlide === 6 && scanProgress < 0.2 ? document.querySelector('#eppEquippedBadges .eq-pill.equipped') : null;
-      if (visPane && !visPane.classList.contains('hidden')) targetEl = visPane;
-      else targetEl = eqActive || kwReading || eppBubble || document.getElementById('eppStageTag');
-    } else {
-      targetEl = el || currentReadingEl;
-      if (!targetEl) {
-        const bBubble = document.getElementById('buddyBubble');
-        targetEl = (bBubble && bBubble.querySelector('.kw.reading')) || bBubble;
-      }
-    }
+    const visPane = document.getElementById('stageVisualPane');
+    const eppBubble = document.getElementById('eppSpeechBubble');
+    const kwReading = eppBubble ? eppBubble.querySelector('.kw.reading') : null;
+    const eqActive = currentSlide === 6 && scanProgress < 0.2 ? document.querySelector('#eppEquippedBadges .eq-pill.equipped') : null;
+    if (visPane && !visPane.classList.contains('hidden')) targetEl = el || visPane;
+    else targetEl = eqActive || kwReading || eppBubble || document.getElementById('eppStageTag');
   }
   if (!targetEl) { tweenGazeTo(0, 0, 0, 0, 0.25); return; }
 
@@ -402,27 +337,15 @@ function lookBuddyAtElement(el, scanProgress = 0.5, forceTarget = null) {
   const mag = Math.hypot(rawDx, rawDy) || 1;
 
   let nx;
-  if (Math.abs(rawDx) < 22) {
-    nx = Math.max(-1, Math.min(1, rawDx / 14));
-  } else {
-    const signX = Math.sign(inv.a || 1);
-    nx = (rawDx / mag) * 0.65 + (colT - 0.5) * 0.55 * signX;
-    nx = Math.max(-1, Math.min(1, nx));
-  }
+  if (Math.abs(rawDx) < 22) nx = Math.max(-1, Math.min(1, rawDx / 14));
+  else nx = Math.max(-1, Math.min(1, (rawDx / mag) * 0.65 + (colT - 0.5) * 0.55));
   const ny = Math.max(-1, Math.min(1, (rawDy / mag) * 0.9));
 
   tweenGazeTo(nx * 0.45, ny * 0.35, nx * 0.46, ny * 0.32, 0.13);
 }
 
-function faceBuddyToward(el) {
-  if (!buddyEl || !el || buddyParked || isStageSlide()) return;
-  const r = el.getBoundingClientRect();
-  const elCx = r.left + r.width / 2;
-  const buddyCx = buddyX + (buddyEl.offsetWidth || 90) / 2;
-  if (Math.abs(elCx - buddyCx) > 26) buddyEl.classList.toggle('facing-left', elCx < buddyCx);
-}
-
 function stopActiveVoice() {
+  activeVoiceGen++;
   clearTimeout(speakDelayTimer);
   clearTimeout(gazeResetTimer);
   if (activeAudio) {
@@ -432,6 +355,12 @@ function stopActiveVoice() {
     activeAudio.onplay = null;
   }
   cancelAnimationFrame(lipRafId);
+  if (window.__gemiUtter) {
+    window.__gemiUtter.onend = null;
+    window.__gemiUtter.onerror = null;
+    window.__gemiUtter.onboundary = null;
+    window.__gemiUtter.onstart = null;
+  }
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   stopLipSync();
   clearBubbleHighlight();
@@ -457,7 +386,6 @@ function speakOne(text) {
     };
 
     clearTimeout(gazeResetTimer);
-    wakeBuddy();
     lookBuddyAtElement(currentReadingEl, 0.05);
 
     const startSilentSync = () => {
@@ -491,11 +419,8 @@ function speakOne(text) {
           if (done || activeAudio.paused) return;
           const ms = activeAudio.currentTime * 1000;
           if (timeline && timeline.length) setMouthFrame(visemeAtTime(timeline, ms));
-          const durMs = (activeAudio.duration && isFinite(activeAudio.duration))
-            ? activeAudio.duration * 1000
-            : Math.max(1800, words * 420);
-          const effectiveMs = Math.max(400, durMs - 140);
-          const progress = Math.min(0.999, Math.max(0, ms / effectiveMs));
+          const durMs = (activeAudio.duration && isFinite(activeAudio.duration)) ? activeAudio.duration * 1000 : Math.max(1800, words * 420);
+          const progress = Math.min(0.999, Math.max(0, ms / Math.max(400, durMs - 140)));
           highlightBubbleWord(-1, progress);
           const now = performance.now();
           if (now - gazeLastTick > 75) {
@@ -520,10 +445,7 @@ function speakOne(text) {
       } catch (e) {}
     }
 
-    if (!soundEnabled || !('speechSynthesis' in window)) {
-      startSilentSync();
-      return;
-    }
+    if (!soundEnabled || !('speechSynthesis' in window)) { startSilentSync(); return; }
 
     const synth = window.speechSynthesis;
     const u = new SpeechSynthesisUtterance(text);
@@ -539,10 +461,7 @@ function speakOne(text) {
         pulseLipOnce();
         if (typeof e.charIndex === 'number') {
           const wIdx = wordIndexFromChar(e.charIndex);
-          if (wIdx >= 0) {
-            highlightBubbleWord(wIdx);
-            lookBuddyAtElement(currentReadingEl, (wIdx + 0.5) / words);
-          }
+          if (wIdx >= 0) { highlightBubbleWord(wIdx); lookBuddyAtElement(currentReadingEl, (wIdx + 0.5) / words); }
         }
       }
     };
@@ -557,32 +476,28 @@ function speakOne(text) {
 }
 
 async function speakChunk(text, alive = () => true) {
-  if (window.__audioMap && window.__audioMap[text]) {
-    await speakOne(text);
-    return;
-  }
-  for (const sentence of splitSentences(text)) {
-    if (!alive()) return;
-    await speakOne(sentence);
-  }
+  if (window.__audioMap && window.__audioMap[text]) { await speakOne(text); return; }
+  for (const sentence of splitSentences(text)) { if (!alive()) return; await speakOne(sentence); }
 }
 
 function speakWithLipSync(text, onFinish) {
   if (!text) { if (onFinish) onFinish(); return false; }
   stopActiveVoice();
-  speakDelayTimer = setTimeout(() => { speakChunk(text).then(() => { if (onFinish) onFinish(); }); }, 50);
+  const myGen = activeVoiceGen;
+  speakDelayTimer = setTimeout(() => {
+    if (myGen !== activeVoiceGen) return;
+    speakChunk(text, () => myGen === activeVoiceGen).then(() => {
+      if (myGen === activeVoiceGen && onFinish) onFinish();
+    });
+  }, 50);
   return true;
 }
 
 function pickNaturalSpanishVoice() {
   if (!('speechSynthesis' in window)) return null;
   const voices = window.speechSynthesis.getVoices();
-  return (
-    voices.find(v => v.lang.startsWith('es') && /natural|online|google|dalia|jorge|paloma|salome/i.test(v.name)) ||
-    voices.find(v => v.lang === 'es-MX') ||
-    voices.find(v => v.lang.startsWith('es')) ||
-    null
-  );
+  return voices.find(v => v.lang.startsWith('es') && /natural|online|google|dalia|jorge|paloma|salome/i.test(v.name))
+    || voices.find(v => v.lang === 'es-MX') || voices.find(v => v.lang.startsWith('es')) || null;
 }
 if ('speechSynthesis' in window) {
   window.speechSynthesis.getVoices();
@@ -590,19 +505,15 @@ if ('speechSynthesis' in window) {
 }
 
 let mouthPulseTimer = null;
-function startLipSync() { if (buddyEl) buddyEl.classList.add('speaking'); setMouthFrame(1); }
+function startLipSync() { setMouthFrame(1); }
 function pulseLipOnce() {
   setMouthFrame(lastMouthState === 3 ? 1 : 3);
   clearTimeout(mouthPulseTimer);
   mouthPulseTimer = setTimeout(() => setMouthFrame(0), 120);
 }
-function stopLipSync() {
-  clearTimeout(mouthPulseTimer);
-  if (buddyEl) buddyEl.classList.remove('speaking');
-  setMouthFrame(0);
-}
+function stopLipSync() { clearTimeout(mouthPulseTimer); setMouthFrame(0); }
 
-// ===== 2E. ESCENARIO ÚNICO PROTAGONISTA DE GEMI (SLIDES 2, 4, 6, 7, 8 Y 9) =====
+// ===== 2D. ESCENARIO ÚNICO PROTAGONISTA DE GEMI (LAS 11 LÁMINAS) =====
 const stagePool = document.getElementById('stagePool');
 const stageActorCard = document.getElementById('stageActorCard');
 const stageSplit = document.getElementById('stageSplit');
@@ -614,46 +525,89 @@ const eppStageTag = document.getElementById('eppStageTag');
 const eppEquippedBadges = document.getElementById('eppEquippedBadges');
 const eppGradCap = document.getElementById('eppGradCap');
 const eppGemiSvg = document.getElementById('eppGemiSvg');
+
+const stageMolWrap = document.getElementById('stageMolWrap');
+const stageBioWrap = document.getElementById('stageBioWrap');
+const calcStageWrap = document.getElementById('calcStageWrap');
 const em3DEl = document.getElementById('em3D');
+const quizStageWrap = document.getElementById('quizStageWrap');
+const closingQrWrap = document.getElementById('closingQrWrap');
+const closingDocsWrap = document.getElementById('closingDocsWrap');
+const simEco = document.getElementById('simEcoOutputs');
 
 const stageVisualCatalog = {
+  // Slide 1: Portada
+  portada_hosp: { tag: '🏥 Hospital Arboledas', img: 'assets/img/hospital-arboledas.jpg', title: 'Enfermería · Sesión 25 min', pills: ['Inducción Clínica'], particles: 'sporesClear' },
+  portada_mol: { tag: '🧬 Molécula 3D Interactiva', widget: 'mol', particles: 'sporesClear' },
+  portada_rapida: { tag: '⚡ Acción Ultrarrápida', icon: '⚡', title: '99.999% en 5–10 min', pills: [{ text: 'Acción inmediata', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
+  portada_biodeg: { tag: '🌿 100% Biodegradable', icon: '🌿', title: 'O₂ + Agua + Ácido Acético', pills: [{ text: 'Cero residuos tóxicos', cls: 'ok' }], theme: 'theme-ok', particles: 'freshAir' },
+  portada_uso: { tag: '🧬 Fácil en Turno', icon: '❄️', title: 'Sin espuma · Agua fría 4 °C', pills: [{ text: 'Cero olor residual', cls: 'ok' }], theme: 'theme-ok', particles: 'frost' },
+  portada_porron: { tag: '🛢️ Presentación 20 L', productImg: 'assets/img/peracetic-20l.png', title: 'Porrón Clínico 20 L', pills: ['Dosificación en mililitros'], particles: 'sporesClear' },
+
   // Slide 2: Perfil
-  perfil_conc: { tag: '🧪 Fórmula Clínica', icon: '🧪', title: 'Ácido Peracético 14–16%', pills: ['FDA / USDA (GRAS)', 'Desinfectante Líquido'], sub: 'Alta eficacia clínica sin residuos.', particles: 'sporesClear' },
-  perfil_stat: { tag: '🏆 Certificado Analis', icon: '✅', counter: true, title: 'Reducción microbiana', pills: ['E. coli ATCC 11229', '30 segundos · 1:75'], sub: 'Eficacia comprobada en laboratorio.', particles: 'sporesClear' },
-  micro_bacterias: { tag: '🦠 Espectro Biocida', icon: '🦠', title: 'Bacterias Gram+ y Gram-', pills: [{ text: 'NEUTRALIZADO · 99.999%', cls: 'ok' }], sub: 'Acción inmediata en superficies e instrumental.', theme: 'theme-ok', particles: 'sporesClear' },
-  micro_virus: { tag: '🧬 Espectro Biocida', icon: '🧬', title: 'Virus Envueltos y No Envueltos', pills: [{ text: 'AMPLIO ESPECTRO', cls: 'ok' }], sub: 'Inactivación rápida en áreas clínicas.', theme: 'theme-ok', particles: 'sporesClear' },
-  micro_hongos: { tag: '🍄 Espectro Biocida', icon: '🍄', title: 'Hongos y Levaduras', pills: [{ text: 'ZONAS HÚMEDAS', cls: 'ok' }], sub: 'Control preventivo en regaderas y áreas críticas.', theme: 'theme-ok', particles: 'sporesClear' },
-  micro_esporas: { tag: '🛡️ Espectro Biocida', icon: '🛡️', title: 'Esporas Bacterianas', pills: [{ text: 'ESTERILIZANTE QUÍMICO · 1:75', cls: 'ok' }], sub: 'Nivel alto con 2000 ppm.', theme: 'theme-ok', particles: 'sporesClear' },
-  mito_olor: { tag: '👃 Sin Olor Residual', icon: '✨', title: 'No imparte olor ni color', pills: [{ text: 'Ideal con pacientes', cls: 'ok' }], sub: 'Cómodo para el personal en turno.', theme: 'theme-ok' },
-  mito_fria: { tag: '❄️ Agua Fría', icon: '❄️', title: 'Eficaz hasta 4 °C y agua dura', pills: [{ text: 'No requiere calentar', cls: 'ok' }], sub: 'Rango pH 2 a 8.', theme: 'theme-ok', particles: 'frost' },
-  mito_espuma: { tag: '🫧 Cero Espuma', icon: '🫧', title: 'Sin generación de espuma', pills: [{ text: 'Fácil de aplicar y enjuagar', cls: 'ok' }], sub: 'Cero residuos en superficie.', theme: 'theme-ok', particles: 'freshAir' },
+  perfil_conc: { tag: '🧪 Fórmula Clínica', icon: '🧪', title: 'Ácido Peracético 14–16%', pills: ['FDA / USDA (GRAS)'], particles: 'sporesClear' },
+  perfil_stat: { tag: '🏆 Ensayo Certificado', counter: true, title: 'Reducción en 30 s', pills: ['E. coli ATCC 11229 · 1:75'], particles: 'sporesClear' },
+  micro_bacterias: { tag: '🦠 Bacterias', icon: '🦠', title: 'Gram+ y Gram-', pills: [{ text: 'NEUTRALIZADO 99.999%', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
+  micro_virus: { tag: '🧬 Virus', icon: '🧬', title: 'Envueltos y No Envueltos', pills: [{ text: 'AMPLIO ESPECTRO', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
+  micro_hongos: { tag: '🍄 Hongos', icon: '🍄', title: 'Hongos y Levaduras', pills: [{ text: 'ZONAS HÚMEDAS', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
+  micro_esporas: { tag: '🛡️ Esporas', icon: '🛡️', title: 'Nivel Alto', pills: [{ text: 'ESTERILIZANTE 1:75', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
+  mito_olor: { tag: '👃 Sin Olor', icon: '✨', title: 'Cero Olor y Color', pills: [{ text: 'Confort del paciente', cls: 'ok' }], theme: 'theme-ok' },
+  mito_fria: { tag: '❄️ Agua Fría', icon: '❄️', title: 'Eficaz hasta 4 °C', pills: [{ text: 'No requiere calentar', cls: 'ok' }], theme: 'theme-ok', particles: 'frost' },
+  mito_espuma: { tag: '🫧 Cero Espuma', icon: '🫧', title: 'Fácil Aplicación', pills: [{ text: 'Cero residuos', cls: 'ok' }], theme: 'theme-ok', particles: 'freshAir' },
+
+  // Slide 3: Simulador 3D Biocida
+  sim_intro: { tag: '⚔️ Mecanismo Biocida', widget: 'bio', bioPhase: 0, particles: 'sporesClear' },
+  sim_phase1: { tag: '1️⃣ Ataque Oxidativo', widget: 'bio', bioPhase: 1 },
+  sim_phase2: { tag: '2️⃣ 99.999% Neutralizado', widget: 'bio', bioPhase: 2 },
+  sim_phase3: { tag: '3️⃣ 100% Biodegradable', widget: 'bio', bioPhase: 3, theme: 'theme-ok', particles: 'sporesClear' },
+
   // Slide 4: Compatibilidad y Cloro
-  compat_acero: { tag: '✅ Material Seguro', icon: '🔩', title: 'Acero Inoxidable', pills: [{ text: 'SEGURO · PREVIENE SARRO', cls: 'ok' }], sub: 'Ideal para mesas, tarjas e instrumental compatible.', theme: 'theme-ok', particles: 'sporesClear' },
-  compat_hule: { tag: '✅ Material Seguro', icon: '🩺', title: 'Hule, Goma y Plásticos Médicos', pills: [{ text: 'COMPATIBLE', cls: 'ok' }], sub: 'Uso seguro en superficies y equipo clínico.', theme: 'theme-ok', particles: 'sporesClear' },
-  compat_cobre: { tag: '⛔ Precaución', icon: '🪙', title: 'Cobre — NO Aplicar Directo', pills: [{ text: 'RIESGO DE DAÑO', cls: 'danger' }], sub: 'Evitar contacto en piezas de cobre.', theme: 'theme-danger' },
-  compat_aluminio: { tag: '⛔ Precaución', icon: '⚙️', title: 'Aluminio y Metales Suaves', pills: [{ text: 'CORROSIVO EN METALES SUAVES', cls: 'danger' }], sub: 'No utilizar en aluminio o aleaciones suaves.', theme: 'theme-danger' },
-  compat_cloro: { tag: '☠️ REGLA DE ORO', icon: '☠️', title: '¡NUNCA MEZCLAR CON CLORO!', pills: [{ text: 'GAS CLORO ALTAMENTE TÓXICO', cls: 'danger' }], sub: 'Jamás combinar con hipoclorito o productos clorados.', theme: 'theme-danger', particles: 'toxicGas', tone: true },
-  compat_gas: { tag: '🚫 Separación Total', icon: '🧪', title: 'Siempre en Recipientes Separados', pills: [{ text: 'CERO CLORO', cls: 'danger' }], sub: 'Protege a todo tu servicio evitando vapores tóxicos.', theme: 'theme-danger', particles: 'toxicGas' },
+  compat_acero: { tag: '✅ Acero Inoxidable', icon: '🔩', title: 'Acero Inoxidable', pills: [{ text: 'SEGURO · PREVIENE SARRO', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
+  compat_hule: { tag: '✅ Hule y Plásticos', icon: '🩺', title: 'Hule, Goma y Plásticos', pills: [{ text: 'COMPATIBLE', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
+  compat_cobre: { tag: '⛔ Precaución', icon: '🪙', title: 'Cobre — NO Aplicar', pills: [{ text: 'RIESGO DE DAÑO', cls: 'danger' }], theme: 'theme-danger' },
+  compat_aluminio: { tag: '⛔ Precaución', icon: '⚙️', title: 'Aluminio y Metales Suaves', pills: [{ text: 'CORROSIVO', cls: 'danger' }], theme: 'theme-danger' },
+  compat_cloro: { tag: '☠️ REGLA DE ORO', icon: '☠️', title: '¡NUNCA CON CLORO!', pills: [{ text: 'LIBERA GAS TÓXICO', cls: 'danger' }], theme: 'theme-danger', particles: 'toxicGas', tone: true },
+  compat_gas: { tag: '🚫 Separación Total', icon: '🧪', title: 'Recipientes Separados', pills: [{ text: 'CERO CLORO', cls: 'danger' }], theme: 'theme-danger', particles: 'toxicGas' },
+
+  // Slide 5: Calculadora Compacta (Solo 1:300 y 1:75)
+  calc_panel: { tag: '🧮 Calculadora 1:300 · 1:75', widget: 'calc' },
+
   // Slide 6: 4 Pasos
-  paso_1: { tag: 'Paso 1 de 4', icon: '🧽', title: 'Limpieza Previa', pills: ['Retirar suciedad y materia orgánica'], sub: 'Paso indispensable antes de aplicar el desinfectante.' },
-  paso_2: { tag: 'Paso 2 de 4', icon: '🧪', title: 'Preparar y Aplicar', pills: ['Medir ml exactos en agua limpia'], sub: 'Cubrir uniformemente la superficie o equipo.' },
-  paso_3: { tag: 'Paso 3 de 4', radial: '5–10 min', title: 'Tiempo de Contacto Clave', pills: ['No secar antes de tiempo'], sub: 'Garantiza el 99.999% de eliminación microbiana.', particles: 'sporesClear' },
-  paso_4: { tag: 'Paso 4 de 4', icon: '💧', title: 'Enjuagar o Dejar Secar', pills: ['1:300 → Sí enjuagar', { text: '1:75 → NO requiere', cls: 'ok' }], sub: 'Superficie lista y segura.', theme: 'theme-ok', particles: 'freshAir' },
+  paso_1: { tag: 'Paso 1 de 4', icon: '🧽', title: 'Limpieza Previa', pills: ['Retirar materia orgánica'] },
+  paso_2: { tag: 'Paso 2 de 4', icon: '🧪', title: 'Preparar y Aplicar', pills: ['Medir ml en agua limpia'] },
+  paso_3: { tag: 'Paso 3 de 4', radial: '5–10 min', title: 'Tiempo de Contacto', pills: ['No secar antes de tiempo'], particles: 'sporesClear' },
+  paso_4: { tag: 'Paso 4 de 4', icon: '💧', title: 'Enjuagar o Secar', pills: ['1:300 → Sí enjuagar', { text: '1:75 → NO', cls: 'ok' }], theme: 'theme-ok', particles: 'freshAir' },
+
   // Slide 8: Almacenamiento
-  store_vertical: { tag: '📦 Envase Original', icon: '🛢️', title: 'Porrón 20 L Vertical y Cerrado', pills: [{ text: 'Abrir solo al dosificar', cls: 'ok' }], sub: 'Evita derrames y pérdida de concentración.', theme: 'theme-ok' },
-  store_fresco: { tag: '⏳ Estabilidad 12 Meses', icon: '🌬️', title: 'Lugar Fresco, Seco y Ventilado', pills: [{ text: 'Vigencia: 12 meses', cls: 'ok' }], sub: 'Conservar siempre en su envase etiquetado.', theme: 'theme-ok', particles: 'freshAir' },
-  store_nunca: { tag: '❌ Prohibiciones', icon: '☀️', title: 'Cero Sol, Calor ni Alimentos', pills: [{ text: 'NO REENVASAR', cls: 'danger' }, { text: 'NO DEVOLVER MEZCLA', cls: 'danger' }], sub: 'Alejar de chispas, flamas y comida.', theme: 'theme-danger' },
-  store_calor: { tag: '🌡️ Límite 35 °C', thermo: { temp: 39, danger: true }, title: '39 °C · ¡Alerta Calor!', pills: [{ text: 'REUBICAR PORRÓN (> 35 °C)', cls: 'danger' }], sub: 'El exceso de calor acelera la degradación.', theme: 'theme-danger', particles: 'toxicGas' },
-  store_ok: { tag: '🌡️ Rango Óptimo', thermo: { temp: 22, danger: false }, title: '22 °C · Zona Segura', pills: [{ text: 'MÁXIMO 35 °C · ÓPTIMO', cls: 'ok' }], sub: 'Conserva potencia hasta 12 meses.', theme: 'theme-ok', particles: 'frost' },
+  store_vertical: { tag: '📦 Envase Original', icon: '🛢️', title: 'Porrón 20 L Vertical', pills: [{ text: 'Cerrado al guardar', cls: 'ok' }], theme: 'theme-ok' },
+  store_fresco: { tag: '⏳ Vigencia 12 Meses', icon: '🌬️', title: 'Fresco, Seco y Ventilado', pills: [{ text: '12 meses', cls: 'ok' }], theme: 'theme-ok', particles: 'freshAir' },
+  store_nunca: { tag: '❌ Prohibiciones', icon: '☀️', title: 'Sin Sol, Calor ni Comida', pills: [{ text: 'NO REENVASAR', cls: 'danger' }], theme: 'theme-danger' },
+  store_calor: { tag: '🌡️ Límite 35 °C', thermo: { temp: 39, danger: true }, title: '39 °C · ¡Alerta Calor!', pills: [{ text: 'REUBICAR (> 35 °C)', cls: 'danger' }], theme: 'theme-danger', particles: 'toxicGas' },
+  store_ok: { tag: '🌡️ Rango Óptimo', thermo: { temp: 22, danger: false }, title: '22 °C · Zona Segura', pills: [{ text: 'MÁXIMO 35 °C', cls: 'ok' }], theme: 'theme-ok', particles: 'frost' },
+
   // Slide 9: Emergencias 3D + tsParticles
-  em_ojos: { tag: '👁️ Ojos · Acción Inmediata', em: 'ojos', pills: ['Abundante agua mín. 15 min', 'Retirar lentes si aplica', 'Atención médica urgente'], particles: 'waterJet' },
-  em_piel: { tag: '🚿 Piel · Ducha de Seguridad', em: 'piel', pills: ['Lavado inmediato con agua y jabón', 'Quitar ropa y calzado'], particles: 'shower' },
-  em_inhalacion: { tag: '🌬️ Inhalación · Ventilación', em: 'inhalacion', pills: ['Trasladar al aire libre', 'Reposo en posición cómoda'], particles: 'freshAir' },
-  em_ingestion: { tag: '🚫 Ingestión · Prohibido Vomitar', em: 'ingestion', pills: ['Enjuagar boca · 1–2 vasos de agua', { text: 'NUNCA PROVOCAR VÓMITO', cls: 'danger' }], theme: 'theme-danger' },
-  em_derrame: { tag: '⚠️ Derrame · Contención Segura', em: 'derrame', pills: ['EPP completo + ventilar', { text: 'Absorber con arcilla o vermiculita', cls: 'ok' }, { text: 'NO TIRAR AL DRENAJE', cls: 'danger' }], theme: 'theme-danger', particles: 'vermiculite' }
+  em_ojos: { tag: '👁️ Ojos · Acción Inmediata', widget: 'em', em: 'ojos', pills: ['15 min agua abundante', 'Urgencias'], particles: 'waterJet' },
+  em_piel: { tag: '🚿 Piel · Ducha Seguridad', widget: 'em', em: 'piel', pills: ['Agua y jabón', 'Quitar ropa'], particles: 'shower' },
+  em_inhalacion: { tag: '🌬️ Inhalación', widget: 'em', em: 'inhalacion', pills: ['Aire libre', 'Reposo'], particles: 'freshAir' },
+  em_ingestion: { tag: '🚫 Ingestión', widget: 'em', em: 'ingestion', pills: ['1–2 vasos agua', { text: 'NUNCA VOMITAR', cls: 'danger' }], theme: 'theme-danger' },
+  em_derrame: { tag: '⚠️ Derrame', widget: 'em', em: 'derrame', pills: ['EPP + arcilla/vermiculita', { text: 'NO DRENAJE', cls: 'danger' }], theme: 'theme-danger', particles: 'vermiculite' },
+
+  // Slide 10 & 11
+  quiz_panel: { tag: '📝 Mini-Quiz Clínico', widget: 'quiz' },
+  close_thanks: { tag: '🏆 Hospital Arboledas', icon: '💚', title: '¡Muchas Gracias!', pills: [{ text: 'Seguridad Clínica', cls: 'ok' }], theme: 'theme-ok', particles: 'sporesClear' },
+  close_qr: { tag: '📱 Tu Guía en el Teléfono', widget: 'qr' },
+  close_docs: { tag: '📁 Documentos PDF', widget: 'docs' }
 };
 
 const stagePipsBySlide = {
+  0: [
+    { vis: 'portada_hosp', label: '🏥' },
+    { vis: 'portada_mol', label: '🧬 3D' },
+    { vis: 'portada_rapida', label: '⚡ 5–10m' },
+    { vis: 'portada_biodeg', label: '🌿 Eco' },
+    { vis: 'portada_uso', label: '❄️ 4°C' },
+    { vis: 'portada_porron', label: '🛢️ 20L' }
+  ],
   1: [
     { vis: 'perfil_conc', label: '14–16%' },
     { vis: 'perfil_stat', label: '99.999%' },
@@ -662,16 +616,22 @@ const stagePipsBySlide = {
     { vis: 'micro_hongos', label: '🍄' },
     { vis: 'micro_esporas', label: '🛡️' },
     { vis: 'mito_olor', label: '👃' },
-    { vis: 'mito_fria', label: '❄️ 4°C' },
+    { vis: 'mito_fria', label: '❄️' },
     { vis: 'mito_espuma', label: '🫧' }
+  ],
+  2: [
+    { vis: 'sim_phase1', label: '1. Oxidación' },
+    { vis: 'sim_phase2', label: '2. 5–10 min' },
+    { vis: 'sim_phase3', label: '3. O₂/H₂O' }
   ],
   3: [
     { vis: 'compat_acero', label: '✅ Acero' },
-    { vis: 'compat_hule', label: '✅ Hule/Plástico' },
+    { vis: 'compat_hule', label: '✅ Hule' },
     { vis: 'compat_cobre', label: '⛔ Cobre' },
     { vis: 'compat_aluminio', label: '⛔ Aluminio' },
-    { vis: 'compat_cloro', label: '☠️ ¡Cloro!' }
+    { vis: 'compat_cloro', label: '☠️ Cloro' }
   ],
+  4: [{ vis: 'calc_panel', label: '🧮 Abrir Calculadora 1:300 · 1:75', persist: true }],
   5: [
     { vis: 'paso_1', label: '1. Limpiar' },
     { vis: 'paso_2', label: '2. Aplicar' },
@@ -688,20 +648,38 @@ const stagePipsBySlide = {
   8: [
     { vis: 'em_ojos', label: '👁️ Ojos' },
     { vis: 'em_piel', label: '🚿 Piel' },
-    { vis: 'em_inhalacion', label: '🌬️ Inhalación' },
-    { vis: 'em_ingestion', label: '🚫 Ingestión' },
+    { vis: 'em_inhalacion', label: '🌬️ Aire' },
+    { vis: 'em_ingestion', label: '🚫 Vómito' },
     { vis: 'em_derrame', label: '⚠️ Derrame' }
+  ],
+  9: [{ vis: 'quiz_panel', label: '📝 Responder Quiz', persist: true }],
+  10: [
+    { vis: 'close_thanks', label: '💚 Gracias' },
+    { vis: 'close_qr', label: '📱 QR / Tarjeta', persist: true },
+    { vis: 'close_docs', label: '📁 PDFs', persist: true }
   ]
 };
 
 const stageDefaultTags = {
-  1: '✨ Perfil del Producto · Toca a Gemi',
-  3: '🔬 Compatibilidad y Regla de Oro',
-  5: '📋 Rutina Práctica en 4 Pasos',
-  6: '🛡️ Equipo de Protección Personal (EPP)',
+  0: '✨ Toca a Gemi o un ícono',
+  1: '✨ Perfil · Toca a Gemi',
+  2: '🔬 Simulador 3D Biocida',
+  3: '🔬 Compatibilidad · Regla de Oro',
+  4: '🧮 Calculadora 1:300 · 1:75',
+  5: '📋 Rutina en 4 Pasos',
+  6: '🛡️ EPP Obligatorio',
   7: '📦 Almacenamiento Seguro',
-  8: '🚑 Protocolos de Emergencia (3D)'
+  8: '🚑 Emergencias 3D',
+  9: '📝 Mini-Quiz con Gemi',
+  10: '📱 QR, Tarjeta y PDFs'
 };
+
+function hideAllVisualWidgets() {
+  [stageMolWrap, stageBioWrap, calcStageWrap, em3DEl, quizStageWrap, closingQrWrap, closingDocsWrap].forEach(w => {
+    if (w) w.classList.add('hidden');
+  });
+  if (simEco) simEco.classList.remove('show');
+}
 
 function clearStageVisual() {
   if (stageVisualPane) {
@@ -709,8 +687,8 @@ function clearStageVisual() {
     stageVisualPane.classList.remove('theme-danger', 'theme-ok');
   }
   if (stageSplit) stageSplit.classList.remove('has-visual');
-  if (stageAnimContent) stageAnimContent.innerHTML = '';
-  if (em3DEl) em3DEl.classList.add('hidden');
+  if (stageAnimContent) { stageAnimContent.innerHTML = ''; stageAnimContent.classList.add('hidden'); }
+  hideAllVisualWidgets();
   if (window.__playStageParticles) window.__playStageParticles(null);
   document.querySelectorAll('.stage-pip').forEach(p => p.classList.remove('active'));
   currentReadingEl = eppSpeechBubble;
@@ -719,6 +697,7 @@ function clearStageVisual() {
 function animatePopCounter(el) {
   let val = 92.0;
   const step = () => {
+    if (!document.body.contains(el)) return;
     val += (99.999 - val) * 0.16;
     if (99.999 - val < 0.005) el.textContent = '99.999%';
     else { el.textContent = val.toFixed(3) + '%'; requestAnimationFrame(step); }
@@ -738,29 +717,34 @@ function showStageVisual(visKey) {
   if (cfg.theme) stageVisualPane.classList.add(cfg.theme);
   stageSplit.classList.add('has-visual');
 
-  document.querySelectorAll('.stage-pip').forEach(p => {
-    p.classList.toggle('active', p.dataset.vis === visKey);
-  });
+  document.querySelectorAll('.stage-pip').forEach(p => p.classList.toggle('active', p.dataset.vis === visKey));
 
-  if (cfg.em && em3DEl) {
+  hideAllVisualWidgets();
+  if (cfg.widget === 'mol' && stageMolWrap) stageMolWrap.classList.remove('hidden');
+  else if (cfg.widget === 'bio' && stageBioWrap) {
+    stageBioWrap.classList.remove('hidden');
+    if (typeof cfg.bioPhase === 'number' && window.__setBiocideSimPhase) {
+      window.__setBiocideSimPhase(cfg.bioPhase);
+      if (cfg.bioPhase === 3 && simEco) simEco.classList.add('show');
+    }
+  } else if (cfg.widget === 'calc' && calcStageWrap) calcStageWrap.classList.remove('hidden');
+  else if (cfg.widget === 'em' && em3DEl) {
     em3DEl.classList.remove('hidden');
     if (window.__setEmergency3D) window.__setEmergency3D(cfg.em);
-  } else if (em3DEl) {
-    em3DEl.classList.add('hidden');
-  }
+  } else if (cfg.widget === 'quiz' && quizStageWrap) quizStageWrap.classList.remove('hidden');
+  else if (cfg.widget === 'qr' && closingQrWrap) closingQrWrap.classList.remove('hidden');
+  else if (cfg.widget === 'docs' && closingDocsWrap) closingDocsWrap.classList.remove('hidden');
 
   let bodyHtml = '';
-  if (cfg.counter) {
-    bodyHtml += `<div class="pop-big-stat" id="stageCounterVal">92.000%</div>`;
-  } else if (cfg.radial) {
-    bodyHtml += `<div class="anim-radial-ring">${cfg.radial}</div>`;
-  } else if (cfg.thermo) {
+  if (cfg.counter) bodyHtml += `<div class="pop-big-stat" id="stageCounterVal">92.000%</div>`;
+  else if (cfg.radial) bodyHtml += `<div class="anim-radial-ring">${cfg.radial}</div>`;
+  else if (cfg.thermo) {
     const pct = Math.min(100, Math.round((cfg.thermo.temp / 45) * 100));
     const bg = cfg.thermo.danger ? '#EF4444' : '#2DD4BF';
     bodyHtml += `<div class="anim-thermo-track"><div class="anim-thermo-fill" style="width:${pct}%;background:${bg};"></div></div>`;
-  } else if (cfg.icon) {
-    bodyHtml += `<div class="pop-icon">${cfg.icon}</div>`;
-  }
+  } else if (cfg.img) bodyHtml += `<img src="${cfg.img}" alt="Hospital Arboledas" class="pop-media-img" />`;
+  else if (cfg.productImg) bodyHtml += `<img src="${cfg.productImg}" alt="SWIPE Peracetic 20L" class="pop-media-product" />`;
+  else if (cfg.icon) bodyHtml += `<div class="pop-icon">${cfg.icon}</div>`;
 
   if (cfg.title) bodyHtml += `<div class="pop-title">${cfg.title}</div>`;
   if (cfg.pills && cfg.pills.length) {
@@ -772,25 +756,31 @@ function showStageVisual(visKey) {
   }
   if (cfg.sub) bodyHtml += `<p class="pop-sub">${cfg.sub}</p>`;
 
-  stageAnimContent.innerHTML = bodyHtml;
-  const counterEl = document.getElementById('stageCounterVal');
-  if (counterEl) animatePopCounter(counterEl);
+  if (bodyHtml) {
+    stageAnimContent.innerHTML = bodyHtml;
+    stageAnimContent.classList.remove('hidden');
+    const counterEl = document.getElementById('stageCounterVal');
+    if (counterEl) animatePopCounter(counterEl);
+  } else {
+    stageAnimContent.innerHTML = '';
+    stageAnimContent.classList.add('hidden');
+  }
 
   if (cfg.tone) playTone(220, 0.3, 'sawtooth', 0.05);
   if (window.__playStageParticles) window.__playStageParticles(cfg.particles || null);
 
   if (typeof gsap !== 'undefined') {
-    gsap.fromTo(stageVisualPane, { opacity: 0, scale: 0.9, x: 18 }, { opacity: 1, scale: 1, x: 0, duration: 0.42, ease: 'back.out(1.6)' });
+    gsap.fromTo(stageVisualPane, { opacity: 0, scale: 0.92, y: 8 }, { opacity: 1, scale: 1, y: 0, duration: 0.38, ease: 'back.out(1.5)' });
   }
   currentReadingEl = stageVisualPane;
   lookBuddyAtElement(stageVisualPane, 0.35);
 }
 
 const eppStageLabels = {
-  ojos: '🥽 Gafas / Careta de Protección',
-  guantes: '🧤 Guantes Largos de Nitrilo',
-  bata: '🥼 Bata / Delantal Impermeable',
-  mascarilla: '😷 Mascarilla para Vapores Ácidos'
+  ojos: '🥽 Gafas / Careta',
+  guantes: '🧤 Guantes Nitrilo',
+  bata: '🥼 Bata Impermeable',
+  mascarilla: '😷 Mascarilla Vapores'
 };
 const eppSpeeches = {
   ojos: 'Primero, gafas o careta de protección total para evitar cualquier salpicadura en los ojos.',
@@ -826,36 +816,33 @@ function equipGemiEpp(zoneKey, keepPrevious = false) {
 function mountStageForSlide(idx) {
   if (!stageActorCard) return;
   clearStageVisual();
-  if (!isStageSlide(idx)) {
-    if (stagePool) stagePool.appendChild(stageActorCard);
-    if (buddyEl) buddyEl.classList.remove('hidden-for-stage');
-    return;
-  }
   const slot = slides[idx] && slides[idx].querySelector('.stage-slot');
   if (slot) slot.appendChild(stageActorCard);
-  if (buddyEl) buddyEl.classList.add('hidden-for-stage');
+  else if (stagePool) stagePool.appendChild(stageActorCard);
 
   if (eppGradCap) eppGradCap.classList.toggle('hidden', idx !== 5);
   if (eppEquippedBadges) eppEquippedBadges.classList.toggle('hidden', idx !== 6);
   if (idx !== 6) resetEppGear();
-  if (eppStageTag) eppStageTag.textContent = stageDefaultTags[idx] || '✨ Gemi en Escena';
+  if (eppStageTag) eppStageTag.textContent = stageDefaultTags[idx] || '✨ Toca a Gemi';
 
   if (stageStepDots) {
     const pips = stagePipsBySlide[idx] || [];
     stageStepDots.innerHTML = pips.map(p =>
-      `<button type="button" class="stage-pip" data-vis="${p.vis}">${p.label}</button>`
+      `<button type="button" class="stage-pip" data-vis="${p.vis}" data-persist="${p.persist ? '1' : '0'}">${p.label}</button>`
     ).join('');
     stageStepDots.querySelectorAll('.stage-pip').forEach(btn => {
       btn.addEventListener('click', () => {
         stopSlideTour();
         const visKey = btn.dataset.vis;
+        const persist = btn.dataset.persist === '1';
         const match = (autoScripts[idx] || []).find(c => c.vis === visKey);
         const speech = match ? match.s : '';
         const mood = match && match.mood ? match.mood : 'normal';
-        setBuddyMood(mood, speech, false);
+        if (match && match.a) { try { match.a(); } catch (e) {} }
+        setBuddyMood(mood, speech || stageDefaultTags[idx], false);
         showStageVisual(visKey);
         playBuddyGesture(mood === 'alert' ? 'alertShake' : 'point');
-        if (speech) speakWithLipSync(speech);
+        if (speech) speakWithLipSync(speech, () => { if (!persist && !autoMode && !slideTourRunning) clearStageVisual(); });
       });
     });
   }
@@ -875,6 +862,7 @@ document.querySelectorAll('.eq-pill').forEach(pill => {
   });
 });
 
+const buddyQuickMenu = document.getElementById('buddyQuickMenu');
 if (eppGemiSvg) {
   eppGemiSvg.addEventListener('click', () => {
     if (autoMode) return;
@@ -886,84 +874,35 @@ if (eppGemiSvg) {
       startSlideTour(currentSlide);
     }
   });
+  const openBqm = (e) => { e.preventDefault(); if (buddyQuickMenu) buddyQuickMenu.classList.toggle('hidden'); };
+  eppGemiSvg.addEventListener('dblclick', openBqm);
+  eppGemiSvg.addEventListener('contextmenu', openBqm);
 }
 
-// ===== 2F. ORQUESTADOR DE PRESENTACIÓN Y SPOTLIGHT =====
-function clearGemiFocus() {
-  document.querySelectorAll('.gemi-focus').forEach(n => n.classList.remove('gemi-focus'));
-  document.querySelectorAll('.slide.stage-dimming').forEach(s => s.classList.remove('stage-dimming'));
-}
-
-async function focusBuddyOn(el, mode = 'glide', scaleMul = 1) {
-  clearGemiFocus();
-  currentReadingEl = el || null;
-  if (!el || isStageSlide()) return;
-  const r0 = el.getBoundingClientRect();
-  if (r0.top < 70 || r0.bottom > window.innerHeight - 70) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    await waitMs(480);
-  }
-  el.classList.add('gemi-focus');
-  if (slides[currentSlide]) slides[currentSlide].classList.add('stage-dimming');
-  moveBuddyToElement(el, mode, scaleMul);
-  await waitMs(mode === 'teleport' ? 420 : 320);
-  faceBuddyToward(el);
-  lookBuddyAtElement(el, 0.08);
-  playBuddyGesture(scaleMul > 1.1 ? 'point' : 'land');
-}
-
-function gemiSpotlightReact(el, speechText, opts = {}) {
-  const { mood = 'normal', gesture = 'point', speak = false, scaleMul = 1.08 } = opts;
-  if (autoMode || slideTourRunning) return;
-  clearGemiFocus();
-  currentReadingEl = el || null;
-  if (el && !isStageSlide()) {
-    el.classList.add('gemi-focus');
-    if (slides[currentSlide]) slides[currentSlide].classList.add('stage-dimming');
-    moveBuddyToElement(el, 'glide', scaleMul);
-    faceBuddyToward(el);
-  }
-  setBuddyMood(mood, speechText, speak);
-  lookBuddyAtElement(el, 0.1);
-  playBuddyGesture(gesture);
-}
-
+// ===== 2E. EJECUCIÓN DE GUIONES Y QUIZ =====
 async function runSlideScript(idx, alive) {
-  const chunks = autoScripts[idx] || [{ t: 'h2', s: buddyLines[idx] }];
+  const chunks = autoScripts[idx] || [{ s: buddyLines[idx] }];
   for (let c = 0; c < chunks.length; c++) {
     if (!alive()) return;
     const ch = chunks[c];
     if (ch.quiz) { await runAutoQuiz(alive); continue; }
 
     setBuddyMood(ch.mood || 'normal', ch.s, false);
-
-    if (isStageSlide(idx)) {
-      if ('vis' in ch) showStageVisual(ch.vis);
-      if (ch.a) { try { ch.a(); } catch (e) {} }
-      playBuddyGesture(ch.mood === 'alert' ? 'alertShake' : 'point');
-    } else {
-      const el = ch.t ? slides[idx].querySelector(ch.t) : null;
-      const mode = c % 2 === 0 ? 'teleport' : 'glide';
-      const scaleMul = c % 3 === 0 ? 1.25 : 1;
-      await focusBuddyOn(el, mode, scaleMul);
-      if (!alive()) return;
-      if (ch.a) { try { ch.a(); } catch (e) {} }
-      if (ch.mood === 'alert') playBuddyGesture('alertShake');
-    }
+    if ('vis' in ch) showStageVisual(ch.vis);
+    if (ch.a) { try { ch.a(); } catch (e) {} }
+    playBuddyGesture(ch.mood === 'alert' ? 'alertShake' : 'point');
 
     await speakChunk(ch.s, alive);
     if (!alive()) return;
-    await sleepAuto(ch.pause || 380);
+    await sleepAuto(ch.pause || 350);
   }
-  if (isStageSlide(idx) && idx !== 6) clearStageVisual();
-  clearGemiFocus();
+  if (idx !== 6 && idx !== 4 && idx !== 9 && idx !== 10) clearStageVisual();
 }
 
 function stopSlideTour() {
   slideTourRunning = false;
   slideTourGen++;
   clearTimeout(autoStepTimer);
-  clearGemiFocus();
   stopActiveVoice();
 }
 
@@ -983,7 +922,7 @@ async function runAutoQuiz(alive) {
     if (!alive()) return;
     const item = quizData[q];
     setBuddyMood('normal', `❓ ${item.q}`, false);
-    await focusBuddyOn(document.getElementById('quizQuestion'), q % 2 ? 'glide' : 'teleport', q % 2 ? 1 : 1.2);
+    lookBuddyAtElement(document.getElementById('quizQuestion'), 0.25);
     const spoken = `Pregunta ${q + 1}. ${item.q} ` + item.options.map((o, i) => `Opción ${letters[i]}: ${o}.`).join(' ');
     await speakChunk(spoken, alive);
     for (let s = 5; s > 0; s--) {
@@ -993,7 +932,7 @@ async function runAutoQuiz(alive) {
     }
     if (!alive()) return;
     const btn = quizOptions.children[item.correct];
-    if (btn) { await focusBuddyOn(btn, 'glide'); btn.click(); }
+    if (btn) btn.click();
     await sleepAuto(500);
     if (!alive()) return;
     setBuddyMood('happyOpen', item.feedback, false);
@@ -1014,11 +953,11 @@ async function runAutoFrom(startIdx) {
     if (!alive()) return;
     if (currentSlide !== idx) openSlide(idx);
     else updateBuddyForSlide(idx);
-    await sleepAuto(750);
+    await sleepAuto(700);
     if (!alive()) return;
     await runSlideScript(idx, alive);
     if (!alive()) return;
-    await sleepAuto(500);
+    await sleepAuto(450);
   }
   if (alive()) stopAutoPresentation();
 }
@@ -1027,20 +966,13 @@ function stopAutoPresentation() {
   autoMode = false;
   autoGen++;
   clearTimeout(autoStepTimer);
-  clearGemiFocus();
-  if (btnAutoPlay) {
-    btnAutoPlay.classList.remove('active');
-    btnAutoPlay.innerHTML = '<span>🤖 Auto</span>';
-  }
+  if (btnAutoPlay) { btnAutoPlay.classList.remove('active'); btnAutoPlay.innerHTML = '<span>🤖 Auto</span>'; }
   stopActiveVoice();
 }
 
 function startAutoPresentation() {
   autoMode = true;
-  if (btnAutoPlay) {
-    btnAutoPlay.classList.add('active');
-    btnAutoPlay.innerHTML = '<span>⏸️ Pausar Auto</span>';
-  }
+  if (btnAutoPlay) { btnAutoPlay.classList.add('active'); btnAutoPlay.innerHTML = '<span>⏸️ Pausar Auto</span>'; }
   runAutoFrom(currentSlide);
 }
 
@@ -1077,11 +1009,7 @@ slides.forEach((s, i) => {
   const item = document.createElement('button');
   item.className = 'menu-item';
   item.innerHTML = `<span>${i + 1}. ${s.dataset.title}</span><span>${s.dataset.time}</span>`;
-  item.addEventListener('click', () => {
-    stopAutoPresentation();
-    openSlide(i);
-    menuModal.classList.add('hidden');
-  });
+  item.addEventListener('click', () => { stopAutoPresentation(); openSlide(i); menuModal.classList.add('hidden'); });
   menuList.appendChild(item);
 });
 
@@ -1089,10 +1017,18 @@ const pixelPortal = document.getElementById('pixelPortal');
 
 function runFuturisticTransition(prevSlide, nextSlideEl) {
   if (typeof gsap === 'undefined') {
-    prevSlide.classList.remove('active');
+    slides.forEach(s => { if (s !== nextSlideEl) s.classList.remove('active'); });
     nextSlideEl.classList.add('active');
     return;
   }
+  slides.forEach(s => {
+    gsap.killTweensOf(s.querySelectorAll('.stagger'));
+    if (s !== prevSlide && s !== nextSlideEl) {
+      gsap.killTweensOf(s);
+      s.classList.remove('active');
+      gsap.set(s, { clearProps: 'all' });
+    }
+  });
   gsap.killTweensOf([prevSlide, nextSlideEl, pixelPortal]);
   const origin = window.__getPixelOrigin2D ? window.__getPixelOrigin2D() : { x: 50, y: 50 };
   const exitPt = window.__getPixelOrigin2D ? window.__getPixelOrigin2D() : { x: 25, y: 35 };
@@ -1102,7 +1038,7 @@ function runFuturisticTransition(prevSlide, nextSlideEl) {
   if (prevSlide !== nextSlideEl) {
     gsap.to(prevSlide, {
       opacity: 0, scale: 0.05, transformOrigin: `${exitPt.x}% ${exitPt.y}%`,
-      borderRadius: '18px', duration: 0.38, ease: 'power3.in',
+      borderRadius: '18px', duration: 0.35, ease: 'power3.in',
       onComplete: () => { prevSlide.classList.remove('active'); gsap.set(prevSlide, { clearProps: 'all' }); }
     });
   }
@@ -1110,17 +1046,17 @@ function runFuturisticTransition(prevSlide, nextSlideEl) {
     pixelPortal.classList.remove('hidden');
     gsap.fromTo(pixelPortal,
       { left: oxPx - 9, top: oyPx - 9, width: 18, height: 18, opacity: 1, borderRadius: '3px' },
-      { left: 0, top: 58, width: window.innerWidth, height: Math.max(200, window.innerHeight - 118), opacity: 0, borderRadius: '18px', duration: 0.68, ease: 'power3.out', onComplete: () => pixelPortal.classList.add('hidden') }
+      { left: 0, top: 54, width: window.innerWidth, height: Math.max(200, window.innerHeight - 108), opacity: 0, borderRadius: '18px', duration: 0.62, ease: 'power3.out', onComplete: () => pixelPortal.classList.add('hidden') }
     );
   }
   nextSlideEl.classList.add('active');
   gsap.set(nextSlideEl, { clearProps: 'all', opacity: 1, zIndex: 3 });
   gsap.fromTo(nextSlideEl,
-    { opacity: 0.25, scale: 0.035, transformOrigin: `${origin.x}% ${origin.y}%`, clipPath: 'inset(35% 35% 35% 35% round 16px)' },
-    { opacity: 1, scale: 1, clipPath: 'inset(0% 0% 0% 0% round 0px)', duration: 0.68, delay: 0.06, ease: 'power3.out', clearProps: 'transform,clipPath,transformOrigin' }
+    { opacity: 0.25, scale: 0.04, transformOrigin: `${origin.x}% ${origin.y}%`, clipPath: 'inset(35% 35% 35% 35% round 16px)' },
+    { opacity: 1, scale: 1, clipPath: 'inset(0% 0% 0% 0% round 0px)', duration: 0.62, delay: 0.05, ease: 'power3.out', clearProps: 'transform,clipPath,transformOrigin' }
   );
-  const targets = nextSlideEl.querySelectorAll('.stagger, .glass-card');
-  gsap.fromTo(targets, { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.42, stagger: 0.045, delay: 0.22, ease: 'power3.out', overwrite: 'auto' });
+  const targets = nextSlideEl.querySelectorAll('.stagger');
+  gsap.fromTo(targets, { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.38, stagger: 0.04, delay: 0.18, ease: 'power3.out', overwrite: 'auto' });
 }
 
 function openSlide(index) {
@@ -1145,30 +1081,26 @@ function openSlide(index) {
   notesTime.textContent = `Tiempo sugerido: ${slides[currentSlide].dataset.time || ''}`;
 
   stopSlideTour();
-  clearGemiFocus();
   mountStageForSlide(currentSlide);
   if (window.__triggerWarp3D) window.__triggerWarp3D();
   updateBuddyForSlide(currentSlide);
 
   const topbarEl = document.querySelector('.topbar');
-  if (topbarEl) {
-    topbarEl.classList.remove('hud-flash');
-    void topbarEl.offsetWidth;
-    topbarEl.classList.add('hud-flash');
-  }
+  if (topbarEl) { topbarEl.classList.remove('hud-flash'); void topbarEl.offsetWidth; topbarEl.classList.add('hud-flash'); }
   playTone(520, 0.05, 'sine', 0.03);
 }
 
+// Swipe táctil izquierda/derecha en celular
 let touchStartX = 0;
 document.getElementById('deck').addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
 document.getElementById('deck').addEventListener('touchend', (e) => {
+  if (e.target && e.target.tagName === 'INPUT') return;
   const diff = e.changedTouches[0].screenX - touchStartX;
-  if (Math.abs(diff) > 55) { diff < 0 ? nextSlide() : prevSlide(); }
+  if (Math.abs(diff) > 55) { stopAutoPresentation(); diff < 0 ? nextSlide() : prevSlide(); }
 }, { passive: true });
 
 function nextSlide() { openSlide(currentSlide + 1); }
 function prevSlide() { openSlide(currentSlide - 1); }
-
 btnPrev.addEventListener('click', () => { stopAutoPresentation(); prevSlide(); });
 btnNext.addEventListener('click', () => { stopAutoPresentation(); nextSlide(); });
 
@@ -1191,10 +1123,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-function toggleNotes() {
-  notesDrawer.classList.toggle('hidden');
-  btnNotes.classList.toggle('active');
-}
+function toggleNotes() { notesDrawer.classList.toggle('hidden'); btnNotes.classList.toggle('active'); }
 btnNotes.addEventListener('click', toggleNotes);
 document.getElementById('btnCloseNotes').addEventListener('click', toggleNotes);
 document.getElementById('btnMenu').addEventListener('click', () => menuModal.classList.toggle('hidden'));
@@ -1206,12 +1135,11 @@ function toggleFullscreen() {
 }
 document.getElementById('btnFullscreen').addEventListener('click', toggleFullscreen);
 
-// ===== 4. TEMPORIZADOR 25:00 =====
+// ===== 4. TEMPORIZADOR 25:00 Y TEMA =====
 let totalSeconds = 25 * 60;
 let timerInterval = null;
 const timerDisplay = document.getElementById('timerDisplay');
 const btnTimer = document.getElementById('btnTimer');
-
 function renderTimer() {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
   const s = (totalSeconds % 60).toString().padStart(2, '0');
@@ -1222,96 +1150,24 @@ btnTimer.addEventListener('click', () => {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; btnTimer.classList.remove('running'); }
   else {
     btnTimer.classList.add('running');
-    timerInterval = setInterval(() => {
-      if (totalSeconds > 0) { totalSeconds--; renderTimer(); }
-      else { clearInterval(timerInterval); timerInterval = null; }
-    }, 1000);
+    timerInterval = setInterval(() => { if (totalSeconds > 0) { totalSeconds--; renderTimer(); } else { clearInterval(timerInterval); timerInterval = null; } }, 1000);
   }
 });
-document.getElementById('btnTimerReset').addEventListener('click', () => {
-  clearInterval(timerInterval); timerInterval = null;
-  totalSeconds = 25 * 60;
-  btnTimer.classList.remove('running', 'warning');
-  renderTimer();
-});
+document.getElementById('btnTimerReset').addEventListener('click', () => { clearInterval(timerInterval); timerInterval = null; totalSeconds = 25 * 60; btnTimer.classList.remove('running', 'warning'); renderTimer(); });
 
-// ===== 5. SLIDE 1: INTERACCIÓN EN PORTADA =====
-document.querySelectorAll('.hero-highlights .hl-item').forEach((card, idx) => {
-  card.addEventListener('click', () => {
-    const line = (autoScripts[0] && autoScripts[0][2 + idx]) ? autoScripts[0][2 + idx].s : buddyLines[0];
-    gemiSpotlightReact(card, line, { mood: 'happyOpen', gesture: 'point', speak: soundEnabled, scaleMul: 1.1 });
-  });
-});
-const heroProductImg = document.querySelector('.floating-product');
-if (heroProductImg) {
-  heroProductImg.addEventListener('click', () => {
-    const line = (autoScripts[0] && autoScripts[0][5]) ? autoScripts[0][5].s : buddyLines[0];
-    gemiSpotlightReact(heroProductImg, line, { mood: 'happyOpen', gesture: 'cheer', speak: soundEnabled, scaleMul: 1.12 });
-  });
-}
-
-// ===== 5B. TEMA CLARO / OSCURO (T) =====
 const btnTheme = document.getElementById('btnTheme');
-function toggleTheme() {
-  document.body.classList.toggle('light-mode');
-  if (btnTheme) btnTheme.classList.toggle('active', document.body.classList.contains('light-mode'));
-  playTone(640, 0.05);
-}
+function toggleTheme() { document.body.classList.toggle('light-mode'); if (btnTheme) btnTheme.classList.toggle('active', document.body.classList.contains('light-mode')); playTone(640, 0.05); }
 if (btnTheme) btnTheme.addEventListener('click', toggleTheme);
 
-// ===== 6. SLIDE 3: SIMULADOR 3D BIOCIDA =====
-const btnRunSim = document.getElementById('btnRunSim');
-const simEco = document.getElementById('simEcoOutputs');
-const simCap = document.getElementById('simCaption');
-const simPills = [document.getElementById('simP1'), document.getElementById('simP2'), document.getElementById('simP3')];
-let simRunning = false;
+document.getElementById('btnCloseHazard').addEventListener('click', () => document.getElementById('hazardOverlay').classList.add('hidden'));
 
-btnRunSim.addEventListener('click', () => {
-  if (simRunning) return;
-  simRunning = true;
-  btnRunSim.textContent = 'Simulando en 3D...';
-  simEco.classList.remove('show');
-  if (window.__setBiocideSimPhase) window.__setBiocideSimPhase(1);
-  const simView = document.getElementById('simViewport');
-  gemiSpotlightReact(simView, 'Fase 1: Ataque por oxidación rápida al patógeno 3D.', { gesture: 'point', speak: false });
-
-  simPills.forEach((p, idx) => p.classList.toggle('active', idx === 0));
-  simCap.textContent = 'Fase 1: Las moléculas rodean y oxidan al patógeno 3D.';
-
-  setTimeout(() => {
-    simPills.forEach((p, idx) => p.classList.toggle('active', idx === 1));
-    if (window.__setBiocideSimPhase) window.__setBiocideSimPhase(2);
-    simCap.textContent = 'Fase 2: En 5–10 minutos logra 99.999% de neutralización.';
-    if (!autoMode) {
-      setBuddyMood('normal', 'Fase 2: En 5–10 min logra 99.999% de reducción.', false);
-      lookBuddyAtElement(simView, 0.55);
-    }
-  }, 1600);
-
-  setTimeout(() => {
-    simPills.forEach((p, idx) => p.classList.toggle('active', idx === 2));
-    if (window.__setBiocideSimPhase) window.__setBiocideSimPhase(3);
-    simEco.classList.add('show');
-    simCap.textContent = 'Fase 3: ¡Cero residuos tóxicos! Oxígeno, Agua y Ácido Acético.';
-    btnRunSim.textContent = '↻ Volver a simular';
-    simRunning = false;
-    gemiSpotlightReact(document.querySelector('.biodeg-banner'), '¡Cero residuos tóxicos! Solo O₂, Agua y Ácido Acético.', { mood: 'happyOpen', gesture: 'cheer', speak: false });
-  }, 3200);
-});
-
-const hazardOverlay = document.getElementById('hazardOverlay');
-document.getElementById('btnCloseHazard').addEventListener('click', () => {
-  hazardOverlay.classList.add('hidden');
-});
-
-// ===== 8. SLIDE 5: CALCULADORA (SOLO 1:300 Y 1:75) + VASO 3D =====
+// ===== 5. CALCULADORA COMPACTA (SOLO 1:300 Y 1:75) =====
 const litersRange = document.getElementById('litersRange');
 const litersValue = document.getElementById('litersValue');
 const resRatio = document.getElementById('resRatio');
 const resRinse = document.getElementById('resRinse');
 const resAmount = document.getElementById('resAmount');
 const resSub = document.getElementById('resSub');
-const resDesc = document.getElementById('resDesc');
 
 let activeTask = document.querySelector('.task-btn.active');
 let currentDisplayedMl = 16.5;
@@ -1321,22 +1177,16 @@ function updateCalc() {
   const mlPerLiter = parseFloat(activeTask.dataset.ml);
   const targetMl = liters * mlPerLiter;
 
-  litersValue.textContent = `${liters} ${liters === 1 ? 'Litro' : 'Litros'}`;
-  resRatio.textContent = `Dilución ${activeTask.dataset.ratio} · ${activeTask.dataset.ppm}`;
+  litersValue.textContent = `${liters} L`;
+  resRatio.textContent = `${activeTask.dataset.ratio} · ${activeTask.dataset.ppm}`;
   resRinse.textContent = activeTask.dataset.rinse;
   resRinse.className = `res-rinse ${activeTask.dataset.rinseOk}`;
-  resSub.textContent = `de SWIPE® Peracetic en ${liters} ${liters === 1 ? 'litro' : 'litros'} de agua`;
-  resDesc.textContent = `📋 ${activeTask.dataset.desc}`;
+  resSub.textContent = `en ${liters} ${liters === 1 ? 'litro' : 'litros'} de agua`;
 
   if (window.__setBeakerLevel3D) window.__setBeakerLevel3D(liters / 20);
   if (typeof gsap !== 'undefined') {
     const obj = { val: currentDisplayedMl };
-    gsap.to(obj, {
-      val: targetMl,
-      duration: 0.35,
-      onUpdate: () => { resAmount.textContent = `${obj.val.toFixed(1)} ml`; },
-      onComplete: () => { currentDisplayedMl = targetMl; }
-    });
+    gsap.to(obj, { val: targetMl, duration: 0.3, onUpdate: () => { resAmount.textContent = `${obj.val.toFixed(1)} ml`; }, onComplete: () => { currentDisplayedMl = targetMl; } });
   } else {
     resAmount.textContent = `${targetMl.toFixed(1)} ml`;
   }
@@ -1348,27 +1198,16 @@ document.querySelectorAll('.task-btn').forEach(btn => {
     btn.classList.add('active');
     activeTask = btn;
     updateCalc();
-    const rinseNote = btn.dataset.rinseOk === 'ok'
-      ? '✅ ¡Ojo! Esta dilución NO requiere enjuague posterior.'
-      : '💧 Recuerda enjuagar después de los 5 a 10 minutos.';
-    const resCard = document.querySelector('.calc-result-card');
-    gemiSpotlightReact(resCard, rinseNote, { mood: btn.dataset.rinseOk === 'ok' ? 'happyOpen' : 'normal', gesture: 'nod', speak: false });
-    lookBuddyAtElement(document.getElementById('resAmount'), 0.45);
+    if (!autoMode && !slideTourRunning) {
+      const msg = btn.dataset.rinseOk === 'ok' ? '✅ ¡Ojo! Esta dilución NO requiere enjuague.' : '💧 Requiere enjuague tras 5–10 min.';
+      setBuddyMood(btn.dataset.rinseOk === 'ok' ? 'happyOpen' : 'normal', msg, false);
+      playBuddyGesture('nod');
+    }
   });
 });
-litersRange.addEventListener('input', () => {
-  updateCalc();
-  if (!autoMode) lookBuddyAtElement(document.getElementById('resAmount'), parseInt(litersRange.value, 10) / 20);
-});
-document.querySelectorAll('.preset-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    litersRange.value = btn.dataset.liters;
-    updateCalc();
-    if (!autoMode) lookBuddyAtElement(document.getElementById('resAmount'), 0.5);
-  });
-});
+if (litersRange) litersRange.addEventListener('input', updateCalc);
 
-// ===== 9. REACCIONES RÁPIDAS Y CONFETI =====
+// ===== 6. REACCIONES Y CONFETI =====
 function spawnReaction(emoji) {
   for (let i = 0; i < 5; i++) {
     const el = document.createElement('div');
@@ -1377,22 +1216,33 @@ function spawnReaction(emoji) {
     el.style.left = `${15 + Math.random() * 70}%`;
     document.body.appendChild(el);
     if (typeof gsap !== 'undefined') {
-      gsap.to(el, {
-        y: -(260 + Math.random() * 220), x: (Math.random() - 0.5) * 90,
-        opacity: 0, scale: 1.3, duration: 1.6 + Math.random() * 0.6,
-        ease: 'power1.out', onComplete: () => el.remove()
-      });
+      gsap.to(el, { y: -(240 + Math.random() * 200), x: (Math.random() - 0.5) * 90, opacity: 0, scale: 1.3, duration: 1.5, ease: 'power1.out', onComplete: () => el.remove() });
     } else el.remove();
   }
   playTone(720, 0.06);
 }
 
-// ===== 10. SLIDE 10: QUIZ (SOLO DILUCIONES 1:300 Y 1:75) =====
+function spawnConfetti(count = 28) {
+  const colors = ['#2DD4BF', '#38BDF8', '#FACC15', '#4ADE80'];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.background = colors[i % colors.length];
+    el.style.left = `${15 + Math.random() * 70}%`;
+    el.style.top = '30%';
+    document.body.appendChild(el);
+    if (typeof gsap !== 'undefined') {
+      gsap.to(el, { x: (Math.random() - 0.5) * 420, y: 180 + Math.random() * 280, rotation: Math.random() * 680, opacity: 0, duration: 1.3, ease: 'power2.out', onComplete: () => el.remove() });
+    } else el.remove();
+  }
+}
+
+// ===== 7. QUIZ CLÍNICO (SOLO 1:300 Y 1:75) =====
 const quizData = [
-  { q: '¿Con qué producto está PROHIBIDO mezclar SWIPE® Peracetic?', options: ['Agua fría', 'Cloro (lavandina) o productos clorados', 'Agua de la llave'], correct: 1, feedback: '¡Exacto! Mezclarlo con cloro libera inmediatamente gas cloro altamente tóxico.' },
-  { q: '¿Cuál es el tiempo de contacto recomendado sobre la superficie?', options: ['5 a 10 segundos', '5 a 10 minutos', '2 horas'], correct: 1, feedback: '¡Correcto! Dejar actuar de 5 a 10 minutos asegura la desinfección efectiva.' },
-  { q: 'Para dosis de choque y áreas críticas (500 ppm / 1:300), ¿cuánto se agrega por cada litro de agua?', options: ['3.3 ml por litro', '13.3 ml por litro', '50 ml por litro'], correct: 0, feedback: '¡Muy bien! 3.3 ml por litro (1:300) es la dilución indicada para dosis de choque y áreas críticas.' },
-  { q: 'Si el producto concentrado salpica a los ojos, ¿qué hacemos primero?', options: ['Poner gotas oftálmicas', 'Enjuagar con abundante agua mínimo 15 minutos y buscar atención médica', 'Tallar con un paño seco'], correct: 1, feedback: '¡Así es! Enjuague inmediato con abundante agua al menos 15 minutos y atención médica urgente.' }
+  { q: '¿Con qué producto está PROHIBIDO mezclar SWIPE® Peracetic?', options: ['Agua fría', 'Cloro (lavandina) o productos clorados', 'Agua de la llave'], correct: 1, feedback: '¡Exacto! Mezclarlo con cloro libera gas cloro altamente tóxico.' },
+  { q: '¿Cuál es el tiempo de contacto recomendado sobre la superficie?', options: ['5 a 10 segundos', '5 a 10 minutos', '2 horas'], correct: 1, feedback: '¡Correcto! Dejar actuar de 5 a 10 minutos asegura la desinfección.' },
+  { q: 'Para dosis de choque y áreas críticas (500 ppm / 1:300), ¿cuánto se agrega por cada litro de agua?', options: ['3.3 ml por litro', '13.3 ml por litro', '50 ml por litro'], correct: 0, feedback: '¡Muy bien! 3.3 ml por litro (1:300) es la dilución indicada.' },
+  { q: 'Si el producto concentrado salpica a los ojos, ¿qué hacemos primero?', options: ['Gotas oftálmicas', 'Enjuagar con abundante agua mínimo 15 minutos y buscar atención médica', 'Paño seco'], correct: 1, feedback: '¡Así es! Mínimo 15 minutos de agua y atención médica urgente.' }
 ];
 
 let qIndex = 0, qScore = 0;
@@ -1404,30 +1254,9 @@ const quizFeedback = document.getElementById('quizFeedback');
 const btnQuizNext = document.getElementById('btnQuizNext');
 const btnQuizRestart = document.getElementById('btnQuizRestart');
 
-function spawnConfetti(count = 28) {
-  const colors = ['#2DD4BF', '#38BDF8', '#FACC15', '#4ADE80'];
-  for (let i = 0; i < count; i++) {
-    const el = document.createElement('div');
-    el.className = 'confetti-piece';
-    el.style.background = colors[i % colors.length];
-    el.style.left = count > 40 ? `${15 + Math.random() * 70}%` : '50%';
-    el.style.top = count > 40 ? '25%' : '55%';
-    document.body.appendChild(el);
-    if (typeof gsap !== 'undefined') {
-      gsap.to(el, {
-        x: (Math.random() - 0.5) * (count > 40 ? 600 : 420),
-        y: (count > 40 ? 250 + Math.random() * 350 : (Math.random() - 0.7) * 320),
-        rotation: Math.random() * 680, opacity: 0,
-        duration: count > 40 ? 1.8 : 1.1, ease: 'power2.out',
-        onComplete: () => el.remove()
-      });
-    } else el.remove();
-  }
-}
-
 function renderQuiz() {
   const item = quizData[qIndex];
-  quizProgress.textContent = `Pregunta ${qIndex + 1} de ${quizData.length}`;
+  quizProgress.textContent = `Pregunta ${qIndex + 1} / ${quizData.length}`;
   quizScore.textContent = `Aciertos: ${qScore}`;
   quizQuestion.textContent = item.q;
   quizFeedback.classList.add('hidden');
@@ -1444,31 +1273,23 @@ function renderQuiz() {
     btn.addEventListener('click', () => {
       const allBtns = Array.from(quizOptions.children);
       allBtns.forEach(b => b.disabled = true);
-      if (idx === item.correct) { btn.classList.add('correct'); qScore++; quizScore.textContent = `Aciertos: ${qScore}`; playTone(780, 0.14); spawnConfetti(28); setBuddyMood('happyOpen', '¡Esooo! ¡Excelente respuesta! 🎉'); flipBuddyCelebration(); }
-      else { btn.classList.add('wrong'); allBtns[item.correct].classList.add('correct'); playTone(260, 0.16, 'triangle'); setBuddyMood('normal', '¡Casi! Revisa la explicación arriba 💡'); }
+      if (idx === item.correct) { btn.classList.add('correct'); qScore++; quizScore.textContent = `Aciertos: ${qScore}`; playTone(780, 0.14); spawnConfetti(28); setBuddyMood('happyOpen', '¡Excelente respuesta! 🎉'); playBuddyGesture('cheer'); }
+      else { btn.classList.add('wrong'); allBtns[item.correct].classList.add('correct'); playTone(260, 0.16, 'triangle'); setBuddyMood('normal', '¡Casi! Revisa la explicación.'); }
       quizFeedback.textContent = item.feedback;
       quizFeedback.classList.remove('hidden');
       if (qIndex < quizData.length - 1) btnQuizNext.classList.remove('hidden');
       else {
-        quizFeedback.textContent += ` — Resultado final: ${qScore} de ${quizData.length} aciertos.`;
+        quizFeedback.textContent += ` · Final: ${qScore}/${quizData.length}`;
         if (quizBadge) quizBadge.classList.remove('hidden');
-        spawnConfetti(70);
+        spawnConfetti(50);
         btnQuizRestart.classList.remove('hidden');
       }
     });
     quizOptions.appendChild(btn);
   });
 }
-btnQuizNext.addEventListener('click', () => {
-  qIndex++;
-  renderQuiz();
-  if (!autoMode) { currentReadingEl = quizQuestion; moveBuddyToElement(quizQuestion, 'glide', 1.1); lookBuddyAtElement(quizQuestion, 0.25); }
-});
-btnQuizRestart.addEventListener('click', () => {
-  qIndex = 0; qScore = 0;
-  renderQuiz();
-  if (!autoMode) { currentReadingEl = quizQuestion; moveBuddyToElement(quizQuestion, 'glide', 1.1); lookBuddyAtElement(quizQuestion, 0.25); }
-});
+btnQuizNext.addEventListener('click', () => { qIndex++; renderQuiz(); lookBuddyAtElement(quizQuestion, 0.25); });
+btnQuizRestart.addEventListener('click', () => { qIndex = 0; qScore = 0; renderQuiz(); lookBuddyAtElement(quizQuestion, 0.25); });
 const btnQuizSpeak = document.getElementById('btnQuizSpeak');
 if (btnQuizSpeak) {
   btnQuizSpeak.addEventListener('click', () => {
@@ -1476,7 +1297,8 @@ if (btnQuizSpeak) {
     const item = quizData[qIndex];
     if (!item) return;
     const spoken = `Pregunta ${qIndex + 1}. ${item.q} ` + item.options.map((o, i) => `Opción ${letters[i]}: ${o}.`).join(' ');
-    gemiSpotlightReact(quizQuestion, spoken, { gesture: 'point', speak: soundEnabled, scaleMul: 1.15 });
+    setBuddyMood('normal', spoken, soundEnabled);
+    playBuddyGesture('point');
   });
 }
 
@@ -1487,14 +1309,11 @@ document.getElementById('btnClosePocket').addEventListener('click', () => pocket
 
 const qrContainer = document.getElementById('qrContainer');
 if (qrContainer && typeof QRCode !== 'undefined') {
-  const qrUrl = window.location.protocol.startsWith('http') ? window.location.href : 'https://github.com';
+  const qrUrl = window.location.protocol.startsWith('http') ? window.location.href : 'https://swipeamg-hue.github.io/gemi-arboledas/';
   new QRCode(qrContainer, { text: qrUrl, width: 84, height: 84, colorDark: '#0B2D48', colorLight: '#ffffff' });
 }
 
-// ===== 11. MASCOTA PIXELADA GEMI ("GEMI") CON CAMINATA Y VOZ =====
-const buddyEl = document.getElementById('geminiBuddy');
-const buddyBubble = document.getElementById('buddyBubble');
-const buddyEyes = document.getElementById('buddyEyes');
+// ===== 8. ESTADOS Y PARPADEO DE GEMI =====
 const buddyLines = [
   'Bienvenidos equipo de enfermería de Hospital Arboledas. Conozcamos SWIPE Peracetic.',
   'Conozcamos SWIPE Peracetic: 99.999 por ciento efectivo, sin olor ni espuma.',
@@ -1509,143 +1328,22 @@ const buddyLines = [
   'Muchas gracias. Escanea el código QR para llevar la guía en tu celular.'
 ];
 
-let buddyX = 40;
-let buddyY = Math.max(120, window.innerHeight - 190);
-let buddyScale = 1.0;
-let targetX = buddyX;
-let targetY = buddyY;
-const buddyPop = { v: 1 };
-let buddyPaused = false;
-let buddyParked = false;
-let buddyResumeTimer = null;
-const buddyQuickMenu = document.getElementById('buddyQuickMenu');
-const btnParkBuddy = document.getElementById('btnParkBuddy');
-
-function spawnBuddySparkles(cx, cy) {
-  const cols = ['#2DD4BF', '#38BDF8', '#FACC15', '#F472B6'];
-  for (let i = 0; i < 12; i++) {
-    const sp = document.createElement('div');
-    sp.className = 'buddy-sparkle';
-    sp.style.background = cols[i % cols.length];
-    sp.style.left = `${cx}px`;
-    sp.style.top = `${cy}px`;
-    document.body.appendChild(sp);
-    if (typeof gsap !== 'undefined') {
-      gsap.to(sp, {
-        x: (Math.random() - 0.5) * 140, y: (Math.random() - 0.5) * 140,
-        rotation: Math.random() * 360, scale: 0, opacity: 0, duration: 0.65,
-        ease: 'power2.out', onComplete: () => sp.remove()
-      });
-    } else sp.remove();
-  }
-}
-
-function teleportBuddyTo(x, y) {
-  if (!buddyEl) return;
-  if (typeof gsap === 'undefined') { buddyX = targetX = x; buddyY = targetY = y; return; }
-  spawnBuddySparkles(buddyX + 40, buddyY + 40);
-  gsap.killTweensOf(buddyEl);
-  gsap.to(buddyEl, {
-    opacity: 0, duration: 0.18,
-    onComplete: () => {
-      buddyX = targetX = x;
-      buddyY = targetY = y;
-      spawnBuddySparkles(x + 40, y + 40);
-      gsap.fromTo(buddyPop, { v: 0.35 }, { v: 1, duration: 0.5, ease: 'back.out(2.4)' });
-      gsap.to(buddyEl, { opacity: 1, duration: 0.25 });
-    }
-  });
-}
-
-function placeBuddyNear(rect, scaleMul = 1) {
-  const mobile = window.innerWidth < 700;
-  const s = mobile ? 0.76 : 1.08 * scaleMul;
-  buddyScale = s;
-  const w = buddyEl.offsetWidth || 90;
-  const h = buddyEl.offsetHeight || 130;
-  const bw = w * s;
-  const bh = h * s;
-  const topLimit = 58;
-  const bottomLimit = Math.max(topLimit, window.innerHeight - 56 - bh);
-  if (mobile) return { x: 8 - (w - bw) / 2, y: bottomLimit - (h - bh) / 2 };
-
-  let vx = rect.right + 12;
-  let vy = rect.top + Math.min(rect.height / 2, 90) - bh / 2;
-  if (vx + bw > window.innerWidth - 8) vx = rect.left - bw - 12;
-  if (vx < 8) {
-    vx = Math.min(window.innerWidth - bw - 8, Math.max(8, rect.left + rect.width / 2 - bw / 2));
-    vy = rect.bottom + bh + 8 < window.innerHeight - 54 ? rect.bottom + 8 : rect.top - bh - 8;
-  }
-  vy = Math.max(topLimit, Math.min(bottomLimit, vy));
-  return { x: vx - (w - bw) / 2, y: vy - (h - bh) / 2 };
-}
-
-function moveBuddyToElement(el, mode = 'glide', scaleMul = 1) {
-  if (!buddyEl || buddyParked || !el || isStageSlide()) return;
-  const { x, y } = placeBuddyNear(el.getBoundingClientRect(), scaleMul);
-  if (mode === 'teleport') teleportBuddyTo(x, y);
-  else { targetX = x; targetY = y; }
-}
-
-const buddyZzz = document.getElementById('buddyZzz');
-let lastActivityTime = Date.now();
-let buddySleeping = false;
-
-function wakeBuddy() {
-  lastActivityTime = Date.now();
-  if (buddySleeping) {
-    buddySleeping = false;
-    if (buddyZzz) buddyZzz.classList.add('hidden');
-    setBuddyMood('normal');
-  }
-}
-['mousemove', 'keydown', 'click', 'touchstart'].forEach(ev => window.addEventListener(ev, wakeBuddy, { passive: true }));
-
-function flipBuddyCelebration() {
-  if (!buddyEl) return;
-  spawnBuddySparkles(buddyX + 32, buddyY + 32);
-  const svg = document.getElementById('buddySvg');
-  if (svg && typeof gsap !== 'undefined') {
-    gsap.fromTo(svg, { rotation: 0, y: 0 }, { rotation: 360, y: -26, duration: 0.7, ease: 'back.out(1.6)', onComplete: () => gsap.set(svg, { clearProps: 'rotation,y' }) });
-  }
-}
-
-function speakBuddy(text) {
-  speakWithLipSync(text, () => {
-    buddyPaused = false;
-    if (buddyEl && !buddyParked) buddyEl.classList.add('walking');
-  });
-}
-
-const normalEyesHtml = '<rect x="5" y="5" width="2" height="2" fill="#2DD4BF"/><rect x="9" y="5" width="2" height="2" fill="#2DD4BF"/><g id="buddyPupils"><rect x="5.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="9.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="5.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/><rect x="9.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/></g>';
-const happyOpenEyesHtml = '<rect x="5" y="5" width="2" height="2" fill="#4ADE80"/><rect x="9" y="5" width="2" height="2" fill="#4ADE80"/><g id="buddyPupils"><rect x="5.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="9.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="5.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/><rect x="9.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/></g>';
-const alertEyesHtml = '<rect x="5" y="4" width="2" height="3" fill="#EF4444"/><rect x="9" y="4" width="2" height="3" fill="#EF4444"/><g id="buddyPupils"><rect x="5.55" y="5.0" width="0.9" height="1.15" fill="#020617"/><rect x="9.55" y="5.0" width="0.9" height="1.15" fill="#020617"/></g>';
+const normalEyesHtml = '<rect x="5" y="5" width="2" height="2" fill="#2DD4BF"/><rect x="9" y="5" width="2" height="2" fill="#2DD4BF"/><g id="eppPupils"><rect x="5.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="9.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="5.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/><rect x="9.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/></g>';
+const happyOpenEyesHtml = '<rect x="5" y="5" width="2" height="2" fill="#4ADE80"/><rect x="9" y="5" width="2" height="2" fill="#4ADE80"/><g id="eppPupils"><rect x="5.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="9.55" y="5.55" width="0.9" height="0.9" fill="#020617"/><rect x="5.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/><rect x="9.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/></g>';
+const alertEyesHtml = '<rect x="5" y="4" width="2" height="3" fill="#EF4444"/><rect x="9" y="4" width="2" height="3" fill="#EF4444"/><g id="eppPupils"><rect x="5.55" y="5.0" width="0.9" height="1.15" fill="#020617"/><rect x="9.55" y="5.0" width="0.9" height="1.15" fill="#020617"/></g>';
 const happyEyesHtml = '<rect x="5" y="5" width="2" height="1" fill="#4ADE80"/><rect x="9" y="5" width="2" height="1" fill="#4ADE80"/><rect x="4" y="6" width="1" height="1" fill="#4ADE80"/><rect x="7" y="6" width="1" height="1" fill="#4ADE80"/><rect x="8" y="6" width="1" height="1" fill="#4ADE80"/><rect x="11" y="6" width="1" height="1" fill="#4ADE80"/>';
 
 function setBuddyMood(mood, text, shouldSpeak = false) {
-  if (!buddyEyes || !buddyBubble) return;
-  if (text) {
-    setBubbleContent(buddyBubble, text);
-    buddyBubble.classList.remove('collapsed');
-    if (eppSpeechBubble && isStageSlide()) setBubbleContent(eppSpeechBubble, text);
-    buddyPaused = true;
-    clearTimeout(buddyResumeTimer);
-    buddyResumeTimer = setTimeout(() => { buddyPaused = false; }, 5200);
-    if (shouldSpeak) speakBuddy(text);
+  if (text && eppSpeechBubble) {
+    setBubbleContent(eppSpeechBubble, text);
+    if (shouldSpeak) speakWithLipSync(text);
   }
   const eppEyesEl = document.getElementById('eppEyes');
-  if (mood === 'happy') {
-    buddyEyes.innerHTML = happyEyesHtml;
-    if (eppEyesEl) eppEyesEl.innerHTML = happyEyesHtml;
-  } else if (mood === 'happyOpen') {
-    buddyEyes.innerHTML = happyOpenEyesHtml;
-    if (eppEyesEl) eppEyesEl.innerHTML = happyOpenEyesHtml.replace('buddyPupils', 'eppPupils');
-  } else if (mood === 'alert') {
-    buddyEyes.innerHTML = alertEyesHtml;
-    if (eppEyesEl) eppEyesEl.innerHTML = alertEyesHtml.replace('buddyPupils', 'eppPupils');
-  } else {
-    buddyEyes.innerHTML = normalEyesHtml;
-    if (eppEyesEl) eppEyesEl.innerHTML = normalEyesHtml.replace('buddyPupils', 'eppPupils');
+  if (eppEyesEl) {
+    if (mood === 'happy') eppEyesEl.innerHTML = happyEyesHtml;
+    else if (mood === 'happyOpen') eppEyesEl.innerHTML = happyOpenEyesHtml;
+    else if (mood === 'alert') eppEyesEl.innerHTML = alertEyesHtml;
+    else eppEyesEl.innerHTML = normalEyesHtml;
   }
   applyGazeAttrs();
 }
@@ -1654,122 +1352,30 @@ function updateBuddyForSlide(idx) {
   if (autoMode || slideTourRunning) return;
   const line = buddyLines[idx] || '¡Seguimos!';
   const curtainHidden = welcomeCurtain ? welcomeCurtain.classList.contains('hidden') : true;
-
-  if (isStageSlide(idx)) {
-    currentReadingEl = eppSpeechBubble;
-    setBuddyMood(idx === 3 ? 'alert' : 'normal', line, curtainHidden);
-    return;
-  }
-
-  const header = slides[idx] ? slides[idx].querySelector('.slide-header, .closing-left h2, h1') : null;
-  currentReadingEl = header || null;
-  if (curtainHidden && header) {
-    setTimeout(() => {
-      if (!autoMode && !slideTourRunning && currentSlide === idx) {
-        moveBuddyToElement(header, 'teleport', 1.15);
-        faceBuddyToward(header);
-        lookBuddyAtElement(header, 0.25);
-      }
-    }, 750);
-  }
-  if (idx === 10 && curtainHidden) {
-    setBuddyMood('happy', line, true);
-    spawnConfetti(48);
-    playBuddyGesture('cheer');
-    const svg = document.getElementById('buddySvg');
-    if (svg && typeof gsap !== 'undefined') gsap.fromTo(svg, { scaleY: 1 }, { scaleY: 0.78, duration: 0.35, yoyo: true, repeat: 1 });
-    return;
-  }
+  currentReadingEl = eppSpeechBubble;
   setBuddyMood(idx === 3 ? 'alert' : 'normal', line, curtainHidden);
+  if (idx === 10 && curtainHidden) { spawnConfetti(40); playBuddyGesture('cheer'); }
 }
 
-if (buddyEl) {
-  let tPhase = 0;
-  function walkLoop() {
-    tPhase += 0.04;
-    if (!buddyParked) {
-      const dx = targetX - buddyX;
-      const dy = targetY - buddyY;
-      const dist = Math.hypot(dx, dy);
-      if (dist > 2) {
-        buddyX += dx * 0.1;
-        buddyY += dy * 0.1;
-        if (Math.abs(dx) > 4) buddyEl.classList.toggle('facing-left', dx < 0);
-        buddyEl.classList.add('walking');
-      } else {
-        buddyEl.classList.remove('walking');
-      }
-    }
-    const baseS = buddyParked ? 1.0 : buddyScale;
-    const breath = buddyEl.classList.contains('speaking') ? Math.sin(tPhase * 2) * 0.04 : Math.sin(tPhase) * 0.03;
-    const s = (baseS + breath) * buddyPop.v;
-    const tilt = buddyEl.classList.contains('walking') ? Math.max(-6, Math.min(6, (targetX - buddyX) * 0.08)) : 0;
-    buddyEl.style.transform = `translate3d(${buddyX.toFixed(1)}px, ${buddyY.toFixed(1)}px, 0) scale(${s.toFixed(3)}) rotate(${tilt.toFixed(1)}deg)`;
-    requestAnimationFrame(walkLoop);
-  }
-  requestAnimationFrame(walkLoop);
-
-  buddyEl.addEventListener('click', () => {
-    spawnBuddySparkles(buddyX + 32, buddyY + 32);
-    if (autoMode) return;
-    if (slideTourRunning) {
-      stopSlideTour();
-      setBuddyMood('normal', buddyLines[currentSlide], false);
-    } else {
-      startSlideTour(currentSlide);
-    }
-  });
-
-  const openBqm = (e) => { e.preventDefault(); if (buddyQuickMenu) buddyQuickMenu.classList.toggle('hidden'); };
-  buddyEl.addEventListener('dblclick', openBqm);
-  buddyEl.addEventListener('contextmenu', openBqm);
-
-  if (buddyQuickMenu) {
-    document.getElementById('btnCloseBqm').addEventListener('click', () => buddyQuickMenu.classList.add('hidden'));
-    buddyQuickMenu.querySelectorAll('.bqm-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const act = btn.dataset.act;
-        if (act === 'explain') startSlideTour(currentSlide);
-        else if (act === 'greet') {
-          setBuddyMood('happy', '¡Bienvenidos personal de enfermería de Hospital Arboledas! Es un gusto saludarlos.', true);
-          spawnBuddySparkles(buddyX + 32, buddyY + 32);
-          playBuddyGesture('wave');
-        } else if (act === 'celebrate') {
-          setBuddyMood('happy', '¡Excelente participación equipo! 🎉', true);
-          spawnConfetti(45);
-          playBuddyGesture('cheer');
-        } else if (act === 'park') {
-          buddyParked = !buddyParked;
-          if (buddyParked) {
-            buddyX = targetX = 22; buddyY = targetY = window.innerHeight - 160;
-            buddyEl.classList.remove('walking', 'facing-left');
-            btnParkBuddy.textContent = '🚶‍♂️ Volver a caminar';
-          } else {
-            buddyEl.classList.add('walking');
-            btnParkBuddy.textContent = '📌 Estacionar en esquina';
-          }
-        } else if (btn.dataset.faq) {
-          setBuddyMood('normal', btn.dataset.faq, true);
-        }
-        buddyQuickMenu.classList.add('hidden');
-      });
+if (buddyQuickMenu) {
+  document.getElementById('btnCloseBqm').addEventListener('click', () => buddyQuickMenu.classList.add('hidden'));
+  buddyQuickMenu.querySelectorAll('.bqm-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const act = btn.dataset.act;
+      if (act === 'explain') startSlideTour(currentSlide);
+      else if (act === 'greet') { setBuddyMood('happyOpen', '¡Bienvenidos personal de enfermería de Hospital Arboledas! Es un gusto saludarlos.', true); playBuddyGesture('wave'); }
+      else if (act === 'celebrate') { setBuddyMood('happyOpen', '¡Excelente participación equipo! 🎉', true); spawnConfetti(45); playBuddyGesture('cheer'); }
+      else if (btn.dataset.faq) setBuddyMood('normal', btn.dataset.faq, true);
+      buddyQuickMenu.classList.add('hidden');
     });
-  }
-
-  setInterval(() => {
-    const curtainHidden = welcomeCurtain ? welcomeCurtain.classList.contains('hidden') : true;
-    if (curtainHidden && !buddyPaused && !buddySleeping && !autoMode && !slideTourRunning && Date.now() - lastActivityTime > 14000) {
-      buddySleeping = true;
-      if (buddyZzz) buddyZzz.classList.remove('hidden');
-      if (buddyEyes) buddyEyes.innerHTML = '<rect x="5" y="6" width="2" height="1" fill="#64748B"/><rect x="9" y="6" width="2" height="1" fill="#64748B"/>';
-      return;
-    }
-    if (buddySleeping || !buddyEyes || !buddyEyes.querySelector('#buddyPupils')) return;
-    if (typeof anime !== 'undefined') {
-      anime({ targets: '#buddyBlink, #eppBlink', scaleY: [1, 0.08, 1], duration: 190, easing: 'easeInOutQuad' });
-    }
-  }, 3800);
+  });
 }
+
+setInterval(() => {
+  const eppEyesEl = document.getElementById('eppEyes');
+  if (!eppEyesEl || !eppEyesEl.querySelector('#eppPupils')) return;
+  if (typeof anime !== 'undefined') anime({ targets: '#eppBlink', scaleY: [1, 0.08, 1], duration: 190, easing: 'easeInOutQuad' });
+}, 3800);
 
 // Init
 const urlParams = new URLSearchParams(window.location.search);
@@ -1779,7 +1385,7 @@ openSlide(!isNaN(startIdx) && startIdx >= 0 && startIdx < slides.length ? startI
 updateCalc();
 renderQuiz();
 
-// ===== 12. SOPORTE OFFLINE PWA (SERVICE WORKER + INSTALACIÓN SIN INTERNET) =====
+// ===== 9. SOPORTE OFFLINE PWA (SERVICE WORKER) =====
 (function setupOfflinePwa() {
   const pills = [
     document.getElementById('offlineStatusCurtain'),
@@ -1789,10 +1395,7 @@ renderQuiz();
   let deferredInstall = null;
 
   function setOfflineText(txt, isReady = false) {
-    pills.forEach(p => {
-      p.textContent = txt;
-      p.classList.toggle('ready', isReady);
-    });
+    pills.forEach(p => { p.textContent = txt; p.classList.toggle('ready', isReady); });
   }
 
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -1811,9 +1414,7 @@ renderQuiz();
     });
   }
 
-  window.addEventListener('appinstalled', () => {
-    if (btnInstall) btnInstall.classList.add('hidden');
-  });
+  window.addEventListener('appinstalled', () => { if (btnInstall) btnInstall.classList.add('hidden'); });
 
   if (!('serviceWorker' in navigator) || (!window.location.protocol.startsWith('http'))) {
     setOfflineText('📁 Modo archivo local activo', true);
@@ -1826,30 +1427,16 @@ renderQuiz();
       const pct = Math.round((d.done / Math.max(1, d.total)) * 100);
       setOfflineText(`⏳ Guardando modo sin internet (${pct}%)...`, false);
     } else if (d.type === 'SW_READY') {
-      setOfflineText(
-        navigator.onLine
-          ? '✅ Lista para usar sin internet (100% guardada)'
-          : '📴 Modo sin internet activo (100% operativa)',
-        true
-      );
+      setOfflineText(navigator.onLine ? '✅ Lista para usar sin internet (100% guardada)' : '📴 Modo sin internet activo (100% operativa)', true);
     }
   });
 
   window.addEventListener('offline', () => setOfflineText('📴 Modo sin internet activo (caché local)', true));
-  window.addEventListener('online', () => {
-    if (pills.some(p => p.classList.contains('ready'))) {
-      setOfflineText('✅ Lista para usar sin internet (100% guardada)', true);
-    }
-  });
+  window.addEventListener('online', () => { if (pills.some(p => p.classList.contains('ready'))) setOfflineText('✅ Lista para usar sin internet (100% guardada)', true); });
 
   navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
     if (reg.active && !reg.installing && !reg.waiting) {
-      setOfflineText(
-        navigator.onLine
-          ? '✅ Lista para usar sin internet (100% guardada)'
-          : '📴 Modo sin internet activo (100% operativa)',
-        true
-      );
+      setOfflineText(navigator.onLine ? '✅ Lista para usar sin internet (100% guardada)' : '📴 Modo sin internet activo (100% operativa)', true);
     }
   }).catch(() => {
     setOfflineText('ℹ️ Caché offline disponible solo sobre HTTPS/localhost', false);

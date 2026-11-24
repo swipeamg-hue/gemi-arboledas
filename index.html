@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>SWIPE® Peracetic — Inducción Interactiva | Hospital Arboledas</title>
   <link rel="icon" href="assets/img/logo-hospital-arboledas.png" type="image/png" />
   <link rel="apple-touch-icon" href="assets/img/logo-hospital-arboledas.png" />
@@ -17,7 +17,7 @@
   <div class="ambient-glow glow-1" aria-hidden="true"></div>
   <div class="ambient-glow glow-2" aria-hidden="true"></div>
 
-  <!-- Telón de Bienvenida ("En breve comenzamos") -->
+  <!-- Telón de Bienvenida -->
   <div id="welcomeCurtain" class="welcome-curtain" role="dialog" aria-label="Pantalla de bienvenida">
     <div class="curtain-card glass-card">
       <div class="curtain-logo-wrap">
@@ -25,10 +25,10 @@
       </div>
       <span class="badge badge-cyan"><span class="pulse-ring"></span> HOSPITAL ARBOLEDAS · ENFERMERÍA</span>
       <h1>En breve <span class="gradient-text">comenzamos</span></h1>
-      <p>Sesión interactiva: Conociendo <strong>SWIPE® Peracetic</strong> · Duración: 25 minutos</p>
+      <p>Inducción interactiva con Gemi · <strong>SWIPE® Peracetic</strong></p>
       <div class="curtain-actions">
-        <button id="btnStartPresentation" class="btn-neon big-start">Iniciar Presentación →</button>
-        <button id="btnStartAuto" class="btn-glass big-start">🤖 Presentación Automática con Gemi</button>
+        <button id="btnStartPresentation" class="btn-neon big-start">Iniciar →</button>
+        <button id="btnStartAuto" class="btn-glass big-start">🤖 Modo Automático</button>
       </div>
       <div class="offline-row">
         <span id="offlineStatusCurtain" class="offline-pill">⏳ Preparando copia sin internet...</span>
@@ -40,7 +40,7 @@
   <!-- Barra superior HUD -->
   <header class="topbar" role="banner">
     <div class="topbar-left">
-      <button id="btnMenu" class="icon-btn" title="Índice de diapositivas (M)" aria-label="Abrir índice">
+      <button id="btnMenu" class="icon-btn" title="Índice (M)" aria-label="Abrir índice">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <div class="brand-pill">
@@ -52,30 +52,30 @@
     </div>
 
     <div class="topbar-center">
-      <div class="progress-wrap" title="Progreso de la presentación">
+      <div class="progress-wrap" title="Progreso">
         <div id="progressBar" class="progress-bar"></div>
       </div>
       <span id="slideCounter" class="slide-counter">1 / 11</span>
     </div>
 
     <div class="topbar-right">
-      <div class="timer-pill" title="Temporizador de sesión (25 min)">
+      <div class="timer-pill" title="Temporizador (25 min)">
         <button id="btnTimer" class="timer-btn" aria-label="Iniciar o pausar temporizador">
           <span class="live-dot"></span>
           <span id="timerDisplay">25:00</span>
         </button>
-        <button id="btnTimerReset" class="timer-reset" title="Reiniciar 25:00" aria-label="Reiniciar temporizador">↺</button>
+        <button id="btnTimerReset" class="timer-reset" title="Reiniciar" aria-label="Reiniciar temporizador">↺</button>
       </div>
-      <button id="btnAutoPlay" class="icon-btn auto-pill" title="Modo Automático: Gemi presenta todo (A)" aria-label="Modo automático">
+      <button id="btnAutoPlay" class="icon-btn auto-pill" title="Presentación Automática (A)" aria-label="Modo automático">
         <span>🤖 Auto</span>
       </button>
-      <button id="btnTheme" class="icon-btn" title="Modo Claro / Oscuro para proyector (T)" aria-label="Cambiar tema claro u oscuro">
+      <button id="btnTheme" class="icon-btn" title="Claro / Oscuro (T)" aria-label="Cambiar tema">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       </button>
-      <button id="btnSound" class="icon-btn" title="Sonidos interactivos (S)" aria-label="Activar o silenciar sonidos">
+      <button id="btnSound" class="icon-btn" title="Voz / Sonido (S)" aria-label="Activar o silenciar sonido">
         <svg id="iconSoundOn" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
       </button>
-      <button id="btnNotes" class="icon-btn" title="Notas del presentador (N)" aria-label="Notas del presentador">
+      <button id="btnNotes" class="icon-btn" title="Notas (N)" aria-label="Notas del presentador">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
       </button>
       <button id="btnFullscreen" class="icon-btn" title="Pantalla completa (F)" aria-label="Pantalla completa">
@@ -84,373 +84,146 @@
     </div>
   </header>
 
-  <!-- Contenedor principal -->
+  <!-- Deck Principal (11 Láminas 100% Gemi + Sin Scroll en Móvil) -->
   <main id="deck" class="deck" role="main">
 
-    <!-- SLIDE 1: PORTADA FUTURISTA -->
-    <section class="slide active" data-title="Bienvenida" data-time="1.5 min" data-notes="Bienvenida al personal de enfermería de Hospital Arboledas. En 25 minutos veremos de forma visual y práctica qué es SWIPE Peracetic, cómo prepararlo sin complicaciones y cómo cuidarnos al usarlo.">
-      <div class="slide-inner hero-grid">
-        <div class="hero-content stagger">
-          <div class="badge-row">
-            <span class="badge badge-cyan"><span class="pulse-ring"></span> PERSONAL DE ENFERMERÍA</span>
-            <span class="badge badge-glass">SESIÓN INTERACTIVA · 25 MIN</span>
-          </div>
+    <section class="slide active" data-title="Bienvenida" data-time="1.5 min" data-notes="Bienvenida a Hospital Arboledas. Toca a Gemi para ver la molécula 3D, el porrón de 20L y las ventajas clave.">
+      <div class="slide-inner stage-slide-inner">
+        <div class="slide-header stagger">
+          <span class="eyebrow">00 // BIENVENIDA · HOSPITAL ARBOLEDAS</span>
           <h1>Conociendo <span class="gradient-text">SWIPE® Peracetic</span></h1>
-          <p class="lead">
-            Desinfección rápida, segura y 100% biodegradable para <strong>Hospital Arboledas</strong>.
-          </p>
-          <div class="hero-highlights">
-            <div class="hl-item glass-card" data-tilt>
-              <span class="hl-icon">⚡</span>
-              <div>
-                <strong>Acción ultrarrápida</strong>
-                <span>99.999% · 5–10 min de contacto</span>
-              </div>
-            </div>
-            <div class="hl-item glass-card" data-tilt>
-              <span class="hl-icon">🌿</span>
-              <div>
-                <strong>Cero residuos tóxicos</strong>
-                <span>Se degrada en agua, O₂ y ácido acético</span>
-              </div>
-            </div>
-            <div class="hl-item glass-card" data-tilt>
-              <span class="hl-icon">🧬</span>
-              <div>
-                <strong>Fácil uso en turno</strong>
-                <span>Sin espuma, sin olor · Agua fría</span>
-              </div>
-            </div>
-          </div>
-          <div class="hero-cta">
-            <button class="btn-neon" onclick="nextSlide()">Iniciar recorrido →</button>
-            <button class="btn-glass" onclick="openSlide(4)">Ir a Calculadora de Dilución</button>
-          </div>
         </div>
-
-        <div class="hero-visual stagger">
-          <div class="holo-frame" data-tilt>
-            <div class="holo-scanline"></div>
-            <img src="assets/img/hospital-arboledas.jpg" alt="Hospital Arboledas" class="hospital-photo" />
-            <div id="molecule3D" class="molecule-3d-overlay" title="Arrastra para rotar la molécula 3D"></div>
-            <div class="mol-hint">🧬 Arrastra la molécula 3D</div>
-            <div class="floating-product">
-              <img src="assets/img/peracetic-20l.png" alt="Porrón SWIPE Peracetic 20L" />
-              <div class="fp-label">Porrón Clínico 20 L</div>
-            </div>
-            <div class="floating-logo">
-              <img src="assets/img/logo-hospital-arboledas.png" alt="Hospital Arboledas" />
-            </div>
-            <div class="hud-corner tl"></div><div class="hud-corner tr"></div>
-            <div class="hud-corner bl"></div><div class="hud-corner br"></div>
-          </div>
-        </div>
+        <div class="stage-slot stagger" data-stage="0"></div>
       </div>
     </section>
 
-    <!-- SLIDE 2: PERFIL DEL PRODUCTO — PROTAGONISMO 100% GEMI -->
-    <section class="slide" data-title="Perfil del producto" data-time="2 min" data-notes="Gemi presenta al centro el perfil del producto: concentración 14-16%, reducción 99.999% en 30 s y cada microorganismo/mito aparece animado cuando Gemi lo menciona.">
+    <section class="slide" data-title="Perfil del producto" data-time="2 min" data-notes="Gemi presenta 14-16%, 99.999% en 30 s, bacterias, virus, hongos, esporas y mitos con animaciones en vivo.">
       <div class="slide-inner stage-slide-inner">
         <div class="slide-header stagger">
           <span class="eyebrow">01 // PERFIL DEL PRODUCTO</span>
-          <h2>¿Qué es <span class="gradient-text">SWIPE® Peracetic</span> y qué elimina?</h2>
-          <p class="subtitle">Toca a Gemi o avanza la sesión para ver cada animación en escena.</p>
+          <h2>¿Qué es y qué <span class="gradient-text">elimina</span>?</h2>
         </div>
         <div class="stage-slot stagger" data-stage="1"></div>
       </div>
     </section>
 
-    <!-- SLIDE 3: SIMULADOR DE ACCIÓN Y BIODEGRADACIÓN -->
-    <section class="slide" data-title="¿Cómo actúa?" data-time="2 min" data-notes="Presionen el botón 'Simular Acción Biocida' para que el equipo vea visualmente cómo ataca al microorganismo y luego se transforma en oxígeno, agua y ácido acético biodegradable.">
-      <div class="slide-inner">
+    <section class="slide" data-title="¿Cómo actúa?" data-time="2 min" data-notes="Simulación 3D en escena cuando Gemi narra oxidación y biodegradación en O2, H2O y ácido acético.">
+      <div class="slide-inner stage-slide-inner">
         <div class="slide-header stagger">
           <span class="eyebrow">02 // MECANISMO INTELIGENTE</span>
-          <h2>¿Cómo actúa y qué pasa después?</h2>
-          <p class="subtitle">Simulación 3D de oxidación biocida y degradación ecológica.</p>
+          <h2>¿Cómo actúa y se <span class="gradient-text">biodegrada</span>?</h2>
         </div>
-
-        <div class="sim-stage glass-card stagger">
-          <div class="sim-controls-row">
-            <div class="sim-phase-pills">
-              <span class="sim-pill active" id="simP1">1. Oxidación</span>
-              <span class="sim-pill" id="simP2">2. Acción 5–10 min</span>
-              <span class="sim-pill" id="simP3">3. Biodegradación</span>
-            </div>
-            <button id="btnRunSim" class="btn-neon small">▶ Simular Acción Biocida</button>
-          </div>
-
-          <div class="sim-viewport" id="simViewport">
-            <div id="biocide3D" class="biocide-3d-canvas"></div>
-            <div class="sim-eco-outputs" id="simEcoOutputs">
-              <div class="eco-bubble">💨 Oxígeno (O₂)</div>
-              <div class="eco-bubble">💧 Agua (H₂O)</div>
-              <div class="eco-bubble">🍃 Ácido Acético</div>
-            </div>
-          </div>
-
-          <p class="sim-caption" id="simCaption">
-            Presiona <strong>Simular</strong> para ver el ataque al patógeno en 3D.
-          </p>
-        </div>
-
-        <div class="biodeg-banner glass-card stagger">
-          <div class="biodeg-title">🌿 100% Biodegradable en:</div>
-          <div class="biodeg-pills">
-            <span class="eco-pill">💨 Oxígeno (O₂)</span>
-            <span class="eco-pill">💧 Agua (H₂O)</span>
-            <span class="eco-pill">🍃 Ácido Acético (inocuo)</span>
-          </div>
-        </div>
+        <div class="stage-slot stagger" data-stage="2"></div>
       </div>
     </section>
 
-    <!-- SLIDE 4: COMPATIBILIDAD CLÍNICA — PROTAGONISMO 100% GEMI -->
-    <section class="slide" data-title="¿Dónde SÍ y dónde NO?" data-time="2.5 min" data-notes="Gemi expone al centro dónde sí y dónde no aplicar SWIPE Peracetic, enfatizando la Regla de Oro: NUNCA mezclar con cloro.">
+    <section class="slide" data-title="¿Dónde SÍ y dónde NO?" data-time="2.5 min" data-notes="Materiales seguros, precauciones y Regla de Oro: NUNCA mezclar con cloro.">
       <div class="slide-inner stage-slide-inner">
         <div class="slide-header stagger">
           <span class="eyebrow">03 // COMPATIBILIDAD CLÍNICA</span>
-          <h2>¿Dónde SÍ y dónde NO aplicarlo?</h2>
-          <p class="subtitle">Observa con Gemi materiales seguros, incompatibles y la regla de oro.</p>
+          <h2>¿Dónde SÍ y <span class="gradient-text">dónde NO</span>?</h2>
         </div>
         <div class="stage-slot stagger" data-stage="3"></div>
       </div>
     </section>
 
-    <!-- SLIDE 5: CALCULADORA CON VASO MEDIDOR ANIMADO (SOLO 1:300 Y 1:75) -->
-    <section class="slide" data-title="¿Cómo se prepara? (Calculadora)" data-time="3.5 min" data-notes="Muévanle al deslizador de litros y cambien entre 1:300 (3.3 ml/L) y Esterilizante 1:75 (13.3 ml/L). El tanque medidor 3D muestra los ml exactos.">
-      <div class="slide-inner">
+    <section class="slide" data-title="Dosificación (1:300 y 1:75)" data-time="3.5 min" data-notes="Solo 2 diluciones oficiales: 1:300 (3.3 ml/L) y 1:75 (13.3 ml/L). Desliza litros en tu celular.">
+      <div class="slide-inner stage-slide-inner">
         <div class="slide-header stagger">
-          <span class="eyebrow">04 // DOSIFICACIÓN INTELIGENTE</span>
-          <h2>¿Cuánto producto uso? <span class="gradient-text">Calculadora Interactiva</span></h2>
-          <p class="subtitle">Solo 2 diluciones oficiales: elige actividad y litros.</p>
+          <span class="eyebrow">04 // DOSIFICACIÓN · 1:300 Y 1:75</span>
+          <h2>Calculadora <span class="gradient-text">Interactiva</span></h2>
         </div>
-
-        <div class="calc-layout stagger">
-          <div class="calc-controls glass-card">
-            <label class="calc-label">1. ¿Qué actividad vas a realizar?</label>
-            <div class="task-buttons two-only" id="taskButtons">
-              <button class="task-btn active" data-ml="3.3" data-ratio="1:300" data-ppm="500 ppm" data-rinse="Sí requiere enjuague" data-rinse-ok="warn" data-desc="Dosis de choque y áreas críticas / superficies.">
-                <strong>Dosis de choque / áreas críticas</strong>
-                <span>1:300 (500 ppm) · 3.3 ml/L</span>
-              </button>
-              <button class="task-btn" data-ml="13.3" data-ratio="1:75" data-ppm="2000 ppm" data-rinse="NO requiere enjuague" data-rinse-ok="ok" data-desc="Esterilizante químico para equipo médico compatible.">
-                <strong>Esterilizante químico (Nivel Alto)</strong>
-                <span>1:75 (2000 ppm) · 13.3 ml/L</span>
-              </button>
-            </div>
-
-            <div class="liters-control">
-              <div class="liters-head">
-                <label for="litersRange" class="calc-label">2. Litros de agua a preparar:</label>
-                <span id="litersValue" class="liters-badge">5 Litros</span>
-              </div>
-              <input id="litersRange" type="range" min="1" max="20" step="1" value="5" />
-              <div class="liters-presets">
-                <button class="preset-btn" data-liters="1">1 L</button>
-                <button class="preset-btn" data-liters="2">2 L</button>
-                <button class="preset-btn" data-liters="5">5 L</button>
-                <button class="preset-btn" data-liters="10">10 L</button>
-                <button class="preset-btn" data-liters="20">20 L</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="calc-result-card glass-card">
-            <div class="res-top">
-              <span class="res-ratio" id="resRatio">Dilución 1:300 · 500 ppm</span>
-              <span class="res-rinse warn" id="resRinse">Sí requiere enjuague</span>
-            </div>
-
-            <div class="beaker-row">
-              <div id="beaker3D" class="beaker-3d-wrap" aria-hidden="true"></div>
-              <div class="res-main">
-                <div class="res-label">Agrega exactamente:</div>
-                <div class="res-amount" id="resAmount">16.5 ml</div>
-                <div class="res-sub" id="resSub">de SWIPE® Peracetic en 5 litros de agua</div>
-              </div>
-            </div>
-
-            <div class="res-meta">
-              <div>⏱️ <strong>Tiempo de contacto:</strong> 5 a 10 minutos</div>
-              <div id="resDesc">📋 Dosis de choque y áreas críticas / superficies.</div>
-            </div>
-            <div class="res-tip">
-              💡 Prepara al momento · Nunca devuelvas mezcla sobrante al porrón.
-            </div>
-          </div>
-        </div>
+        <div class="stage-slot stagger" data-stage="4"></div>
       </div>
     </section>
 
-    <!-- SLIDE 6: FLUJO DE TURNO — PROTAGONISMO 100% GEMI -->
-    <section class="slide" data-title="Rutina en 4 pasos" data-time="2.5 min" data-notes="Gemi presenta uno a uno los 4 pasos de rutina en turno con animaciones dinámicas en escena.">
+    <section class="slide" data-title="Rutina en 4 pasos" data-time="2.5 min" data-notes="Los 4 pasos del turno aparecen animados conforme Gemi los explica.">
       <div class="slide-inner stage-slide-inner">
         <div class="slide-header stagger">
           <span class="eyebrow">05 // FLUJO DE TURNO</span>
-          <h2>Rutina práctica en <span class="gradient-text">4 pasos</span></h2>
-          <p class="subtitle">Cada paso aparece animado mientras Gemi lo presenta.</p>
+          <h2>Rutina en <span class="gradient-text">4 pasos</span></h2>
         </div>
         <div class="stage-slot stagger" data-stage="5"></div>
       </div>
     </section>
 
-    <!-- SLIDE 7: BIOSEGURIDAD DEL PERSONAL (EPP) — PROTAGONISMO 100% GEMI -->
-    <section class="slide" data-title="Protección Personal (EPP)" data-time="2.5 min" data-notes="Gemi se equipa en vivo con gafas, guantes, bata impermeable y mascarilla para vapores ácidos.">
+    <section class="slide" data-title="Protección Personal (EPP)" data-time="2.5 min" data-notes="Gemi se equipa en vivo: gafas, guantes, bata impermeable y mascarilla.">
       <div class="slide-inner stage-slide-inner">
         <div class="slide-header stagger">
-          <span class="eyebrow">06 // BIOSEGURIDAD DEL PERSONAL</span>
-          <h2>Tu Armadura Clínica: <span class="gradient-text">EPP Obligatorio</span></h2>
-          <p class="subtitle">Toca a Gemi o cualquier pieza para verlo equiparse en vivo.</p>
+          <span class="eyebrow">06 // BIOSEGURIDAD</span>
+          <h2><span class="gradient-text">EPP Obligatorio</span></h2>
         </div>
         <div class="stage-slot stagger" data-stage="6"></div>
       </div>
     </section>
 
-    <!-- SLIDE 8: ALMACENAMIENTO SEGURO — PROTAGONISMO 100% GEMI -->
-    <section class="slide" data-title="Almacenamiento seguro" data-time="2 min" data-notes="Gemi presenta las reglas clave de almacenamiento y termómetro en tiempo real (< 35°C, 12 meses de vida útil).">
+    <section class="slide" data-title="Almacenamiento seguro" data-time="2 min" data-notes="Porrón 20 L parado, cerrado, 12 meses de vida útil y máximo 35 °C.">
       <div class="slide-inner stage-slide-inner">
         <div class="slide-header stagger">
           <span class="eyebrow">07 // ORDEN EN EL SERVICIO</span>
-          <h2>¿Cómo guardamos el porrón?</h2>
-          <p class="subtitle">Reglas visuales y termómetro de almacén junto a Gemi.</p>
+          <h2>¿Cómo <span class="gradient-text">guardarlo</span>?</h2>
         </div>
         <div class="stage-slot stagger" data-stage="7"></div>
       </div>
     </section>
 
-    <!-- SLIDE 9: EMERGENCIAS Y PRIMEROS AUXILIOS — PROTAGONISMO 100% GEMI -->
-    <section class="slide" data-title="Emergencias y Auxilios" data-time="2.5 min" data-notes="Cada escenario de emergencia despliega su animación 3D realista con partículas cuando Gemi lo nombra.">
+    <section class="slide" data-title="Emergencias y Auxilios" data-time="2.5 min" data-notes="Protocolos 3D y partículas realistas para ojos, piel, inhalación, ingestión y derrame.">
       <div class="slide-inner stage-slide-inner">
         <div class="slide-header stagger">
           <span class="eyebrow">08 // RESPUESTA INMEDIATA</span>
-          <h2>Protocolo ante accidentes o derrames</h2>
-          <p class="subtitle">Cada protocolo cobra vida en 3D y partículas cuando Gemi lo nombra.</p>
+          <h2>Protocolos de <span class="gradient-text">Emergencia</span></h2>
         </div>
         <div class="stage-slot stagger" data-stage="8"></div>
       </div>
     </section>
 
-    <!-- SLIDE 10: MINI-QUIZ GAMIFICADO -->
-    <section class="slide" data-title="Repaso rápido (Quiz)" data-time="2.5 min" data-notes="Momento participativo con todo el equipo de enfermería. Preguntar en voz alta y seleccionar la respuesta que indique el grupo.">
-      <div class="slide-inner">
+    <section class="slide" data-title="Repaso rápido (Quiz)" data-time="2.5 min" data-notes="4 preguntas rápidas interactivas con Gemi.">
+      <div class="slide-inner stage-slide-inner">
         <div class="slide-header stagger">
           <span class="eyebrow">09 // VERIFICACIÓN RÁPIDA</span>
-          <h2>Mini-Quiz para <span class="gradient-text">Enfermería</span></h2>
-          <p class="subtitle">4 preguntas rápidas con Gemi.</p>
+          <h2>Mini-Quiz <span class="gradient-text">Enfermería</span></h2>
         </div>
-
-        <div class="quiz-box glass-card stagger">
-          <div class="quiz-top">
-            <span id="quizProgress">Pregunta 1 de 4</span>
-            <span id="quizScore" class="quiz-score">Aciertos: 0</span>
-          </div>
-          <h3 id="quizQuestion" class="quiz-question">Cargando pregunta...</h3>
-          <div id="quizOptions" class="quiz-options"></div>
-          <div id="quizFeedback" class="quiz-feedback hidden"></div>
-          <div id="quizBadge" class="quiz-diploma hidden">
-            <span>🏅</span>
-            <div>
-              <strong>Personal Capacitado · Hospital Arboledas</strong>
-              <small>Inducción SWIPE® Peracetic completada</small>
-            </div>
-          </div>
-          <div class="quiz-actions">
-            <button id="btnQuizSpeak" class="btn-glass small">🗣️ Leer pregunta</button>
-            <button id="btnQuizNext" class="btn-neon small hidden">Siguiente pregunta →</button>
-            <button id="btnQuizRestart" class="btn-glass small hidden">Volver a intentar</button>
-          </div>
-        </div>
+        <div class="stage-slot stagger" data-stage="9"></div>
       </div>
     </section>
 
-    <!-- SLIDE 11: CIERRE Y DOCUMENTOS -->
-    <section class="slide" data-title="Cierre y Descargas" data-time="1.5 min" data-notes="Agradecer al personal de enfermería de Hospital Arboledas. Mostrar que pueden abrir o imprimir la Tarjeta de Bolsillo y descargar los documentos oficiales.">
-      <div class="slide-inner closing-grid">
-        <div class="closing-left stagger">
-          <div class="badge-row">
-            <span class="badge badge-cyan">HOSPITAL ARBOLEDAS</span>
-            <span class="badge badge-glass">¡MUCHAS GRACIAS!</span>
-          </div>
-          <h2>Gracias por cuidar con precisión cada detalle</h2>
-          <p class="lead">
-            Desinfección segura y biodegradable en <strong>Hospital Arboledas</strong>.
-          </p>
-          <div class="pocket-card-cta">
-            <button id="btnOpenPocket" class="btn-neon">🪪 Ver Tarjeta de Bolsillo (Imprimible)</button>
-          </div>
-          <div class="qr-box glass-card">
-            <div id="qrContainer" class="qr-img"></div>
-            <div class="qr-text">
-              <strong>📱 Escanea y llévalo en tu celular</strong>
-              <span>Calculadora y guías PDF directo en tu teléfono.</span>
-            </div>
-          </div>
+    <section class="slide" data-title="Cierre y Guías" data-time="1.5 min" data-notes="Agradecimiento, QR móvil, Tarjeta de Bolsillo y PDFs oficiales.">
+      <div class="slide-inner stage-slide-inner">
+        <div class="slide-header stagger">
+          <span class="eyebrow">10 // CIERRE · HOSPITAL ARBOLEDAS</span>
+          <h2>¡Gracias! <span class="gradient-text">Guías y QR</span></h2>
         </div>
-
-        <div class="closing-right glass-card stagger">
-          <h3>📁 Documentos Oficiales</h3>
-          <p class="docs-sub">Guías PDF listas para consultar:</p>
-          <div class="docs-list">
-            <a href="assets/docs/Guia_Tecnica_SWIPE_Peracetic.pdf" target="_blank" class="doc-item">
-              <span>📘</span>
-              <div>
-                <strong>Guía Técnica SWIPE® Peracetic</strong>
-                <small>Usos, diluciones y propiedades (PDF)</small>
-              </div>
-              <span class="doc-dl">Abrir ↗</span>
-            </a>
-            <a href="assets/docs/Hoja_de_Seguridad_MSDS_SWIPE_Peracetic.pdf" target="_blank" class="doc-item">
-              <span>🛡️</span>
-              <div>
-                <strong>Hoja de Seguridad (MSDS / GHS)</strong>
-                <small>Primeros auxilios, EPP y manejo seguro (PDF)</small>
-              </div>
-              <span class="doc-dl">Abrir ↗</span>
-            </a>
-            <a href="assets/docs/Informe_Laboratorio_SWIPE_Peracetic.pdf" target="_blank" class="doc-item">
-              <span>🔬</span>
-              <div>
-                <strong>Informe Microbiológico (99.999%)</strong>
-                <small>Ensayo certificado Analis Laboratorio (PDF)</small>
-              </div>
-              <span class="doc-dl">Abrir ↗</span>
-            </a>
-          </div>
-        </div>
+        <div class="stage-slot stagger" data-stage="10"></div>
       </div>
     </section>
 
   </main>
 
-  <!-- Escenario Único Protagonista de Gemi (se acopla en Slides 2, 4, 6, 7, 8 y 9) -->
+  <!-- Escenario Único Protagonista de Gemi (Acoplado en TODAS las 11 láminas) -->
   <div id="stagePool" class="hidden" aria-hidden="true">
     <div id="stageActorCard" class="stage-actor-card glass-card">
       <div class="stage-top-bar">
-        <div id="eppSpeechBubble" class="epp-speech-bubble">¡Hola! Tócame para iniciar esta sección.</div>
-        <span id="eppStageTag" class="epp-stage-tag">✨ Gemi en Escena</span>
+        <div id="eppSpeechBubble" class="epp-speech-bubble">¡Hola! Tócame para animar esta lámina.</div>
+        <span id="eppStageTag" class="epp-stage-tag">✨ Toca a Gemi o un ícono</span>
       </div>
 
       <div id="stageSplit" class="stage-split">
         <div id="gemiStageCol" class="gemi-stage-col">
           <div class="epp-gemi-stage">
             <svg id="eppGemiSvg" class="epp-gemi-svg" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-label="Gemi Protagonista">
-              <!-- Antena estrella Gemini -->
               <g id="eppStar">
                 <rect x="7" y="0" width="2" height="1" fill="#FACC15"/>
                 <rect x="6" y="1" width="4" height="1" fill="#FDE047"/>
                 <rect x="7" y="2" width="2" height="1" fill="#38BDF8"/>
               </g>
-              <!-- Birrete maestro (Slide 6) -->
               <g id="eppGradCap" class="hidden">
                 <rect x="3" y="2" width="10" height="1" fill="#FACC15"/>
                 <rect x="5" y="1" width="6" height="1" fill="#1E293B"/>
                 <rect x="12" y="3" width="1" height="2" fill="#FACC15"/>
               </g>
-              <!-- Cabeza / Cuerpo base -->
               <rect x="4" y="3" width="8" height="1" fill="#38BDF8"/>
               <rect x="3" y="4" width="10" height="7" fill="#0EA5E9"/>
               <rect x="4" y="4" width="8" height="6" fill="#0F172A"/>
-              <!-- Ojos + pupilas con seguimiento de lectura -->
               <g id="eppBlink" class="eye-blink-group">
                 <g id="eppEyes">
                   <rect x="5" y="5" width="2" height="2" fill="#2DD4BF"/>
@@ -463,21 +236,15 @@
                   </g>
                 </g>
               </g>
-              <!-- Mejillas -->
               <rect x="4" y="7" width="1" height="1" fill="#F472B6"/>
               <rect x="11" y="7" width="1" height="1" fill="#F472B6"/>
-              <!-- Boca animada -->
               <g id="eppGemiMouth" class="buddy-mouth"></g>
-              <!-- Brazos y torso -->
               <g id="eppArmL"><rect x="2" y="7" width="1" height="3" fill="#2DD4BF"/></g>
               <g id="eppArmR"><rect x="13" y="7" width="1" height="3" fill="#2DD4BF"/></g>
               <rect x="4" y="11" width="8" height="2" fill="#38BDF8"/>
               <rect x="5" y="12" width="6" height="1" fill="#818CF8"/>
-              <!-- Patitas -->
               <rect x="5" y="13" width="2" height="2" fill="#2DD4BF"/>
               <rect x="9" y="13" width="2" height="2" fill="#2DD4BF"/>
-
-              <!-- 1. GAFAS / CARETA (Slide 7) -->
               <g id="eppGear-ojos" class="epp-gear-layer hidden">
                 <rect x="4" y="4" width="3" height="3" fill="#38BDF8" opacity="0.35"/>
                 <rect x="9" y="4" width="3" height="3" fill="#38BDF8" opacity="0.35"/>
@@ -487,21 +254,18 @@
                 <rect x="3" y="5" width="1" height="0.7" fill="#E2E8F0"/>
                 <rect x="12" y="5" width="1" height="0.7" fill="#E2E8F0"/>
               </g>
-              <!-- 2. GUANTES NITRILO / BUTILO -->
               <g id="eppGear-guantes" class="epp-gear-layer hidden">
                 <rect x="1" y="7" width="2" height="4" fill="#14B8A6"/>
                 <rect x="13" y="7" width="2" height="4" fill="#14B8A6"/>
                 <rect x="1" y="10" width="2" height="1" fill="#99F6E4"/>
                 <rect x="13" y="10" width="2" height="1" fill="#99F6E4"/>
               </g>
-              <!-- 3. BATA / DELANTAL IMPERMEABLE -->
               <g id="eppGear-bata" class="epp-gear-layer hidden">
                 <rect x="4" y="11" width="8" height="3" fill="#F8FAFC"/>
                 <rect x="7" y="11" width="2" height="3" fill="#CBD5E1"/>
                 <rect x="5" y="12" width="1" height="1" fill="#0EA5E9"/>
                 <rect x="10" y="12" width="1" height="1" fill="#0EA5E9"/>
               </g>
-              <!-- 4. MASCARILLA -->
               <g id="eppGear-mascarilla" class="epp-gear-layer hidden">
                 <rect x="5" y="7" width="6" height="3" fill="#F8FAFC"/>
                 <rect x="7" y="8" width="2" height="2" fill="#38BDF8"/>
@@ -511,86 +275,127 @@
             </svg>
           </div>
 
-          <div id="eppEquippedBadges" class="epp-equipped-badges hidden">
-            <button type="button" class="eq-pill" data-eq="ojos">🥽 Gafas</button>
-            <button type="button" class="eq-pill" data-eq="guantes">🧤 Guantes</button>
-            <button type="button" class="eq-pill" data-eq="bata">🥼 Bata</button>
-            <button type="button" class="eq-pill" data-eq="mascarilla">😷 Mascarilla</button>
+          <div class="gemi-controls-col">
+            <div id="eppEquippedBadges" class="epp-equipped-badges hidden">
+              <button type="button" class="eq-pill" data-eq="ojos">🥽 Gafas</button>
+              <button type="button" class="eq-pill" data-eq="guantes">🧤 Guantes</button>
+              <button type="button" class="eq-pill" data-eq="bata">🥼 Bata</button>
+              <button type="button" class="eq-pill" data-eq="mascarilla">😷 Mascarilla</button>
+            </div>
+            <div id="stageStepDots" class="stage-step-dots"></div>
           </div>
-
-          <div id="stageStepDots" class="stage-step-dots"></div>
         </div>
 
         <div id="stageVisualPane" class="stage-visual-pane hidden">
           <div id="stageParticles" class="stage-particles" aria-hidden="true"></div>
           <div id="stageAnimContent" class="stage-anim-content"></div>
-          <div id="em3D" class="em-3d-canvas hidden" title="Simulación 3D realista del protocolo"></div>
+
+          <!-- Slide 1: Molécula 3D -->
+          <div id="stageMolWrap" class="stage-3d-box hidden">
+            <div id="molecule3D" class="molecule-3d-overlay" title="Arrastra la molécula 3D"></div>
+            <div class="mol-hint">🧬 Arrastra la molécula 3D</div>
+          </div>
+
+          <!-- Slide 3: Simulador 3D Biocida -->
+          <div id="stageBioWrap" class="stage-bio-box hidden">
+            <div id="biocide3D" class="biocide-3d-canvas"></div>
+            <div class="sim-eco-outputs" id="simEcoOutputs">
+              <div class="eco-bubble">💨 O₂</div>
+              <div class="eco-bubble">💧 H₂O</div>
+              <div class="eco-bubble">🍃 Ác. Acético</div>
+            </div>
+          </div>
+
+          <!-- Slide 5: Calculadora Compacta (Solo 1:300 y 1:75) -->
+          <div id="calcStageWrap" class="calc-compact hidden">
+            <div class="task-buttons two-only" id="taskButtons">
+              <button type="button" class="task-btn active" data-ml="3.3" data-ratio="1:300" data-ppm="500 ppm" data-rinse="Sí enjuagar" data-rinse-ok="warn">
+                <strong>1:300 · Choque</strong>
+                <span>3.3 ml / L</span>
+              </button>
+              <button type="button" class="task-btn" data-ml="13.3" data-ratio="1:75" data-ppm="2000 ppm" data-rinse="NO enjuagar" data-rinse-ok="ok">
+                <strong>1:75 · Esterilizante</strong>
+                <span>13.3 ml / L</span>
+              </button>
+            </div>
+            <div class="calc-beaker-mini">
+              <div id="beaker3D" class="beaker-3d-mini" aria-hidden="true"></div>
+              <div class="calc-readout">
+                <div class="res-top-mini">
+                  <span id="resRatio" class="res-ratio">1:300 · 500 ppm</span>
+                  <span id="resRinse" class="res-rinse warn">Sí enjuagar</span>
+                </div>
+                <div id="resAmount" class="res-amount">16.5 ml</div>
+                <div id="resSub" class="res-sub">en 5 litros de agua</div>
+              </div>
+            </div>
+            <div class="calc-slider-mini">
+              <input id="litersRange" type="range" min="1" max="20" step="1" value="5" aria-label="Litros de agua" />
+              <span id="litersValue" class="liters-badge">5 L</span>
+            </div>
+          </div>
+
+          <!-- Slide 9: Emergencias 3D -->
+          <div id="em3D" class="em-3d-canvas hidden" title="Simulación 3D del protocolo"></div>
+
+          <!-- Slide 10: Quiz Compacto -->
+          <div id="quizStageWrap" class="quiz-compact hidden">
+            <div class="quiz-top">
+              <span id="quizProgress">Pregunta 1 de 4</span>
+              <span id="quizScore" class="quiz-score">Aciertos: 0</span>
+            </div>
+            <h3 id="quizQuestion" class="quiz-question">Cargando...</h3>
+            <div id="quizOptions" class="quiz-options"></div>
+            <div id="quizFeedback" class="quiz-feedback hidden"></div>
+            <div id="quizBadge" class="quiz-diploma hidden">🏅 Personal Capacitado · Hospital Arboledas</div>
+            <div class="quiz-actions">
+              <button id="btnQuizSpeak" type="button" class="btn-glass small">🗣️ Leer pregunta</button>
+              <button id="btnQuizNext" type="button" class="btn-neon small hidden">Siguiente →</button>
+              <button id="btnQuizRestart" type="button" class="btn-glass small hidden">Reintentar</button>
+            </div>
+          </div>
+
+          <!-- Slide 11: QR + Tarjeta -->
+          <div id="closingQrWrap" class="closing-qr-compact hidden">
+            <div id="qrContainer" class="qr-img"></div>
+            <div class="closing-qr-actions">
+              <strong>📱 Escanea para llevarlo offline</strong>
+              <button id="btnOpenPocket" type="button" class="btn-neon small">🪪 Tarjeta de Bolsillo</button>
+            </div>
+          </div>
+
+          <!-- Slide 11: Documentos PDF -->
+          <div id="closingDocsWrap" class="closing-docs-compact hidden">
+            <a href="assets/docs/Guia_Tecnica_SWIPE_Peracetic.pdf" target="_blank" class="doc-item">
+              <span>📘</span><div><strong>Guía Técnica</strong></div><span class="doc-dl">PDF ↗</span>
+            </a>
+            <a href="assets/docs/Hoja_de_Seguridad_MSDS_SWIPE_Peracetic.pdf" target="_blank" class="doc-item">
+              <span>🛡️</span><div><strong>Hoja Seguridad (MSDS)</strong></div><span class="doc-dl">PDF ↗</span>
+            </a>
+            <a href="assets/docs/Informe_Laboratorio_SWIPE_Peracetic.pdf" target="_blank" class="doc-item">
+              <span>🔬</span><div><strong>Informe 99.999%</strong></div><span class="doc-dl">PDF ↗</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Mascota Flotante Gemini ("Gemi") en láminas con escenario propio (1, 3, 5, 10, 11) -->
-  <div id="geminiBuddy" class="gemini-buddy" title="Gemi · Clic: narrar esta lámina · Doble clic: Menú rápido">
-    <div id="buddyZzz" class="buddy-zzz hidden">Z z z</div>
-    <div id="buddyBubble" class="buddy-bubble">¡Hola equipo de Hospital Arboledas! ✨</div>
-    <svg id="buddySvg" class="buddy-svg" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-label="Mascota Pixelada Gemini">
-      <!-- Antena estrella Gemini -->
-      <g id="buddyStar">
-        <rect x="7" y="0" width="2" height="1" fill="#FACC15"/>
-        <rect x="6" y="1" width="4" height="1" fill="#FDE047"/>
-        <rect x="7" y="2" width="2" height="1" fill="#38BDF8"/>
-      </g>
-      <!-- Cabeza / Cuerpo pixelado -->
-      <rect x="4" y="3" width="8" height="1" fill="#38BDF8"/>
-      <rect x="3" y="4" width="10" height="7" fill="#0EA5E9"/>
-      <rect x="4" y="4" width="8" height="6" fill="#0F172A"/>
-      <!-- Ojos pixelados con pupilas de lectura -->
-      <g id="buddyBlink" class="eye-blink-group">
-        <g id="buddyEyes">
-          <rect x="5" y="5" width="2" height="2" fill="#2DD4BF"/>
-          <rect x="9" y="5" width="2" height="2" fill="#2DD4BF"/>
-          <g id="buddyPupils">
-            <rect x="5.55" y="5.55" width="0.9" height="0.9" fill="#020617"/>
-            <rect x="9.55" y="5.55" width="0.9" height="0.9" fill="#020617"/>
-            <rect x="5.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/>
-            <rect x="9.15" y="5.15" width="0.38" height="0.38" fill="#F8FAFC"/>
-          </g>
-        </g>
-      </g>
-      <!-- Mejillas -->
-      <rect x="4" y="7" width="1" height="1" fill="#F472B6"/>
-      <rect x="11" y="7" width="1" height="1" fill="#F472B6"/>
-      <!-- Boca animada al hablar -->
-      <g id="buddyMouth" class="buddy-mouth"></g>
-      <!-- Brazos y base -->
-      <g id="buddyArmL"><rect x="2" y="7" width="1" height="3" fill="#2DD4BF"/></g>
-      <g id="buddyArmR"><rect x="13" y="7" width="1" height="3" fill="#2DD4BF"/></g>
-      <rect x="4" y="11" width="8" height="2" fill="#38BDF8"/>
-      <rect x="5" y="12" width="6" height="1" fill="#818CF8"/>
-      <!-- Patitas -->
-      <g id="buddyLegL"><rect x="5" y="13" width="2" height="2" fill="#2DD4BF"/></g>
-      <g id="buddyLegR"><rect x="9" y="13" width="2" height="2" fill="#2DD4BF"/></g>
-    </svg>
-    <div class="buddy-shadow"></div>
-  </div>
-
-  <!-- Menú Rápido de Gemi (Doble clic o clic derecho sobre Gemi) -->
+  <!-- Menú Rápido de Gemi (Doble clic / clic derecho) -->
   <div id="buddyQuickMenu" class="buddy-quick-menu glass-card hidden" role="dialog" aria-label="Menú rápido de Gemi">
     <div class="bqm-head">
       <strong>👾 Acciones de Gemi</strong>
       <button id="btnCloseBqm" class="close-x" aria-label="Cerrar menú">✕</button>
     </div>
     <div class="bqm-grid">
-      <button class="bqm-btn" data-act="explain">🎯 Narrar solo esta lámina</button>
-      <button class="bqm-btn" data-act="greet">👋 Saludar al auditorio</button>
-      <button class="bqm-btn" data-act="celebrate">🎉 Celebrar respuesta</button>
-      <button class="bqm-btn" data-act="park" id="btnParkBuddy">📌 Estacionar en esquina</button>
+      <button class="bqm-btn" data-act="explain">🎯 Narrar esta lámina</button>
+      <button class="bqm-btn" data-act="greet">👋 Saludar</button>
+      <button class="bqm-btn" data-act="celebrate">🎉 Celebrar</button>
     </div>
-    <div class="bqm-sub">Preguntas frecuentes (con voz):</div>
+    <div class="bqm-sub">Preguntas frecuentes:</div>
     <div class="bqm-grid">
-      <button class="bqm-btn faq" data-faq="No, SWIPE Peracetic no imparte olor ni color residual en las áreas.">💬 ¿Deja olor fuerte?</button>
-      <button class="bqm-btn faq" data-faq="Para nada, es seguro con acero inoxidable y además previene depósitos de sarro.">💬 ¿Daña acero inoxidable?</button>
+      <button class="bqm-btn faq" data-faq="No, SWIPE Peracetic no imparte olor ni color residual en las áreas.">💬 ¿Deja olor?</button>
+      <button class="bqm-btn faq" data-faq="Para nada, es seguro con acero inoxidable y además previene depósitos de sarro.">💬 ¿Daña acero?</button>
       <button class="bqm-btn faq" data-faq="Sí, es completamente efectivo incluso en agua fría de hasta 4 grados centígrados.">💬 ¿Sirve en agua fría?</button>
     </div>
   </div>
@@ -605,8 +410,8 @@
   <!-- Notas del Presentador -->
   <aside id="notesDrawer" class="notes-drawer hidden" aria-label="Notas del presentador">
     <div class="notes-header">
-      <strong>🗣️ Notas del Presentador</strong>
-      <span id="notesTime" class="notes-time">Tiempo sugerido: 1.5 min</span>
+      <strong>🗣️ Notas</strong>
+      <span id="notesTime" class="notes-time">1.5 min</span>
       <button id="btnCloseNotes" class="close-x" aria-label="Cerrar notas">✕</button>
     </div>
     <p id="notesBody" class="notes-body"></p>
@@ -616,7 +421,7 @@
   <div id="menuModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Índice de diapositivas">
     <div class="modal-card glass-card">
       <div class="modal-head">
-        <h3>Índice de la Presentación (25 min)</h3>
+        <h3>Índice (25 min)</h3>
         <button id="btnCloseMenu" class="close-x" aria-label="Cerrar menú">✕</button>
       </div>
       <div id="menuList" class="menu-list"></div>
@@ -626,11 +431,11 @@
     </div>
   </div>
 
-  <!-- Modal Tarjeta de Bolsillo (Solo 2 diluciones: 1:300 y 1:75) -->
+  <!-- Modal Tarjeta de Bolsillo (Solo 1:300 y 1:75) -->
   <div id="pocketModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Tarjeta de bolsillo">
     <div class="modal-card pocket-modal-card">
       <div class="modal-head no-print">
-        <h3>🪪 Tarjeta Rápida para Enfermería — Hospital Arboledas</h3>
+        <h3>🪪 Tarjeta Rápida — Hospital Arboledas</h3>
         <div class="pocket-actions">
           <button onclick="window.print()" class="btn-neon small">🖨️ Imprimir</button>
           <button id="btnClosePocket" class="close-x dark-x" aria-label="Cerrar tarjeta">✕</button>
@@ -638,48 +443,41 @@
       </div>
       <div class="pocket-sheet">
         <div class="pocket-top">
-          <strong>SWIPE® PERACETIC — Guía Rápida</strong>
-          <span>Hospital Arboledas · Enfermería</span>
+          <strong>SWIPE® PERACETIC</strong>
+          <span>Enfermería · Hospital Arboledas</span>
         </div>
         <table class="pocket-table">
           <thead>
-            <tr>
-              <th>Uso</th>
-              <th>Dilución</th>
-              <th>Por 1 L de agua</th>
-              <th>Contacto</th>
-              <th>Enjuague</th>
-            </tr>
+            <tr><th>Uso</th><th>Dilución</th><th>Por 1 L</th><th>Contacto</th><th>Enjuague</th></tr>
           </thead>
           <tbody>
-            <tr><td>Dosis de choque / áreas críticas</td><td>1:300 (500 ppm)</td><td><strong>3.3 ml</strong></td><td>5–10 min</td><td>Sí</td></tr>
-            <tr><td>Esterilizante equipo médico</td><td>1:75 (2000 ppm)</td><td><strong>13.3 ml</strong></td><td>5–10 min</td><td><strong>No</strong></td></tr>
+            <tr><td>Choque / críticas</td><td>1:300 (500 ppm)</td><td><strong>3.3 ml</strong></td><td>5–10 min</td><td>Sí</td></tr>
+            <tr><td>Esterilizante equipo</td><td>1:75 (2000 ppm)</td><td><strong>13.3 ml</strong></td><td>5–10 min</td><td><strong>No</strong></td></tr>
           </tbody>
         </table>
         <div class="pocket-warnings">
-          <div>☠️ <strong>NUNCA mezclar con cloro (lavandina).</strong></div>
-          <div>🥽 <strong>EPP al dosificar:</strong> Gafas, guantes de nitrilo/butilo, bata y ventilación.</div>
-          <div>👁️ <strong>Ojos:</strong> Enjuagar mínimo 15 min con agua + atención médica.</div>
+          <div>☠️ <strong>NUNCA mezclar con cloro.</strong></div>
+          <div>🥽 <strong>EPP concentrado:</strong> Gafas, guantes nitrilo/butilo, bata, ventilación.</div>
+          <div>👁️ <strong>Ojos:</strong> Enjuagar mín. 15 min + urgencias.</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Portal cuadrado para materialización desde partículas 3D -->
+  <!-- Portal cuadrado de partículas -->
   <div id="pixelPortal" class="pixel-portal hidden" aria-hidden="true"></div>
 
-  <!-- Overlay Dramático de Peligro Cloro -->
+  <!-- Overlay Peligro Cloro -->
   <div id="hazardOverlay" class="hazard-overlay hidden" role="alertdialog" aria-modal="true">
     <div class="hazard-box">
       <div class="hazard-skull">☠️</div>
       <h2>¡ALERTA QUÍMICA CRÍTICA!</h2>
-      <p>Mezclar <strong>SWIPE® Peracetic</strong> con <strong>Cloro (lavandina)</strong> genera una reacción inmediata que libera <strong>GAS CLORO ALTAMENTE TÓXICO</strong>.</p>
+      <p>Mezclar <strong>SWIPE® Peracetic</strong> con <strong>Cloro</strong> libera <strong>GAS CLORO ALTAMENTE TÓXICO</strong>.</p>
       <div class="hazard-tags">
         <span>🚫 NUNCA MEZCLAR</span>
         <span>🌬️ VENTILAR ÁREA</span>
-        <span>🏥 SEGURIDAD DEL PACIENTE</span>
       </div>
-      <button id="btnCloseHazard" class="btn-danger-pulse big">Entendido — Cerrar alerta</button>
+      <button id="btnCloseHazard" class="btn-danger-pulse big">Cerrar alerta</button>
     </div>
   </div>
 
