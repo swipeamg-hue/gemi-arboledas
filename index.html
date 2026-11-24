@@ -439,25 +439,35 @@
           <p class="subtitle">Haz clic en cada equipo para ver qué zona protege al dosificar el concentrado del porrón.</p>
         </div>
 
-        <div id="eppLayout" class="epp-interactive-layout stagger">
+        <div id="eppLayout" class="epp-interactive-layout epp-spotlight-mode stagger">
           <div class="epp-avatar-card glass-card">
-            <span id="eppStageTag" class="epp-stage-tag">🥽 Gafas / Careta</span>
+            <div id="eppSpeechBubble" class="epp-speech-bubble">Listo para mostrarte cómo me protejo con el Equipo de Protección Personal.</div>
+            <span id="eppStageTag" class="epp-stage-tag">🛡️ Equipo de Protección Personal</span>
             <div class="epp-gemi-stage">
               <svg id="eppGemiSvg" class="epp-gemi-svg" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-label="Gemi con Equipo de Protección Personal">
                 <!-- Antena estrella Gemini -->
-                <rect x="7" y="0" width="2" height="1" fill="#FACC15"/>
-                <rect x="6" y="1" width="4" height="1" fill="#FDE047"/>
-                <rect x="7" y="2" width="2" height="1" fill="#38BDF8"/>
+                <g id="eppStar">
+                  <rect x="7" y="0" width="2" height="1" fill="#FACC15"/>
+                  <rect x="6" y="1" width="4" height="1" fill="#FDE047"/>
+                  <rect x="7" y="2" width="2" height="1" fill="#38BDF8"/>
+                </g>
                 <!-- Cabeza / Cuerpo base -->
                 <rect x="4" y="3" width="8" height="1" fill="#38BDF8"/>
                 <rect x="3" y="4" width="10" height="6" fill="#0EA5E9"/>
                 <rect x="4" y="4" width="8" height="5" fill="#0F172A"/>
                 <!-- Ojos -->
-                <rect x="5" y="6" width="2" height="2" fill="#2DD4BF"/>
-                <rect x="9" y="6" width="2" height="2" fill="#2DD4BF"/>
+                <g id="eppEyes">
+                  <rect x="5" y="6" width="2" height="2" fill="#2DD4BF"/>
+                  <rect x="9" y="6" width="2" height="2" fill="#2DD4BF"/>
+                </g>
+                <!-- Mejillas -->
+                <rect x="4" y="8" width="1" height="1" fill="#F472B6"/>
+                <rect x="11" y="8" width="1" height="1" fill="#F472B6"/>
+                <!-- Boca animada en Slide 7 -->
+                <g id="eppGemiMouth" class="hidden"></g>
                 <!-- Brazos y torso -->
-                <rect x="2" y="6" width="1" height="3" fill="#2DD4BF"/>
-                <rect x="13" y="6" width="1" height="3" fill="#2DD4BF"/>
+                <g id="eppArmL"><rect x="2" y="6" width="1" height="3" fill="#2DD4BF"/></g>
+                <g id="eppArmR"><rect x="13" y="6" width="1" height="3" fill="#2DD4BF"/></g>
                 <rect x="4" y="10" width="8" height="3" fill="#38BDF8"/>
                 <rect x="5" y="11" width="6" height="1" fill="#818CF8"/>
                 <!-- Patitas -->
@@ -465,7 +475,7 @@
                 <rect x="9" y="13" width="2" height="2" fill="#2DD4BF"/>
 
                 <!-- 1. GAFAS / CARETA -->
-                <g id="eppGear-ojos" class="epp-gear-layer">
+                <g id="eppGear-ojos" class="epp-gear-layer hidden">
                   <rect x="4" y="5" width="3" height="3" fill="#38BDF8" opacity="0.9"/>
                   <rect x="9" y="5" width="3" height="3" fill="#38BDF8" opacity="0.9"/>
                   <rect x="7" y="6" width="2" height="1" fill="#E2E8F0"/>
@@ -495,10 +505,16 @@
                 </g>
               </svg>
             </div>
-            <div class="avatar-hint" id="eppAvatarHint">🥽 Gafas o Careta: bloquean salpicaduras oculares.</div>
+            <div id="eppEquippedBadges" class="epp-equipped-badges">
+              <span class="eq-pill" data-eq="ojos">🥽 Gafas</span>
+              <span class="eq-pill" data-eq="guantes">🧤 Guantes</span>
+              <span class="eq-pill" data-eq="bata">🥼 Bata</span>
+              <span class="eq-pill" data-eq="mascarilla">😷 Mascarilla</span>
+            </div>
+            <div class="avatar-hint" id="eppAvatarHint">Haz clic en el botón para que Gemi explique y se equipe en vivo.</div>
             <div class="epp-stage-btns">
               <button id="btnTeachEpp" class="btn-neon small">🎓 Que Gemi explique el EPP</button>
-              <button id="btnToggleEppCards" class="btn-glass small">👁️ Solo Gemi</button>
+              <button id="btnToggleEppCards" class="btn-glass small">📋 Ver tarjetas</button>
             </div>
           </div>
 
@@ -726,9 +742,7 @@
       <rect x="4" y="8" width="1" height="1" fill="#F472B6"/>
       <rect x="11" y="8" width="1" height="1" fill="#F472B6"/>
       <!-- Boca animada al hablar -->
-      <g id="buddyMouth" class="buddy-mouth hidden">
-        <rect x="7" y="8" width="2" height="1" fill="#2DD4BF"/>
-      </g>
+      <g id="buddyMouth" class="buddy-mouth hidden"></g>
       <!-- Brazos y base -->
       <g id="buddyArmL"><rect x="2" y="6" width="1" height="3" fill="#2DD4BF"/></g>
       <g id="buddyArmR"><rect x="13" y="6" width="1" height="3" fill="#2DD4BF"/></g>

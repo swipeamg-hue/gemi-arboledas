@@ -904,11 +904,56 @@ body.light-mode .welcome-curtain {
 .buddy-mouth {
   transform-box: fill-box;
   transform-origin: center;
-  transition: transform 0.07s ease-out;
 }
-.buddy-mouth.word-pulse {
-  transform: scaleY(2.1) scaleX(1.15);
+
+.gemini-buddy.hidden-for-stage {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
+
+.epp-speech-bubble {
+  background: rgba(7, 23, 42, 0.92);
+  border: 1.5px solid var(--cyan);
+  color: #F8FAFC;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 14px;
+  text-align: center;
+  max-width: 480px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+body.light-mode .epp-speech-bubble { background: #fff; color: #0B2D48; }
+
+.epp-equipped-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.eq-pill {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.eq-pill.equipped {
+  background: rgba(45, 212, 191, 0.22);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 12px rgba(45, 212, 191, 0.3);
+}
+
+#eppArmL, #eppArmR, #eppStar {
+  transform-box: fill-box;
+  transform-origin: center top;
+}
+#eppStar { transform-origin: center bottom; }
 
 .buddy-zzz {
   font-family: 'Space Grotesk', monospace;
@@ -1045,8 +1090,8 @@ body.light-mode .buddy-bubble {
 .epp-interactive-layout { display: grid; grid-template-columns: 0.72fr 1.28fr; gap: 16px; align-items: stretch; transition: all 0.4s ease; }
 .epp-interactive-layout.epp-spotlight-mode { grid-template-columns: 1fr; }
 .epp-interactive-layout.epp-spotlight-mode .epp-grid-2x2 { display: none; }
-.epp-interactive-layout.epp-spotlight-mode .epp-avatar-card { max-width: 540px; width: 100%; margin: 0 auto; padding: 18px 24px; }
-.epp-interactive-layout.epp-spotlight-mode .epp-gemi-svg { width: 210px; height: 210px; }
+.epp-interactive-layout.epp-spotlight-mode .epp-avatar-card { max-width: 560px; width: 100%; margin: 0 auto; padding: 12px 20px; gap: 6px; }
+.epp-interactive-layout.epp-spotlight-mode .epp-gemi-svg { width: 164px; height: 164px; }
 .epp-stage-tag {
   background: rgba(45, 212, 191, 0.16);
   border: 1px solid var(--cyan);
